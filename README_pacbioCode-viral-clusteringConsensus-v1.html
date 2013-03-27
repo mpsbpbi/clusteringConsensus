@@ -1,0 +1,93 @@
+<pre>
+
+goal: package together the first version of code to do viral
+clustering consensus.
+
+Reproduce the results done in emoryHIVTrans/README_emoryHIVTrans_subpop.html.
+
+First I will just collect together everything and assume the PATH
+variable points there so all calls will be resolved by the shell. I
+will just send a zip file but it will be put on github for ease of
+use.
+
+This will require some support code from SMRTpipe, through the
+SEYMOUR_HOME environment variable, that we can make sure is installed.
+{ requirements from SMRTpipe or github:
+- python
+- R
+- fastaindex
+- fastafetch
+- compareSequences.py
+- loadPulses
+- cmph5tools.py
+- quiver (variantCaller.py on github)
+- pairwiseAlignDist (g++ -std=c++0x -O2 -o pairwiseAlignDist pairwiseAlignDist.cc -lm)
+}
+
+================================
+
+I want to replicate the call:
+
+python /home/UNIXHOME/mbrown/mbrown/workspace2012Q4/HIVSGASynMix/ConsensusClusterSubset.py 
+--runDir cc-2450417-0003 
+--fasta 2450417-0003.fasta 
+--ref /mnt/secondary/Smrtpipe/repository/HIVemory/sequence/HIVemory.fasta 
+--spanThreshold=6400 
+--entropyThreshold=1.0 
+--basfofn /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/2450417-0003.bas.fofn > 2450417-0003.workflow.output 2>&1
+
+================================
+
+cp /mnt/secondary/Smrtpipe/repository/HIVemory/sequence/HIVemory.fasta ./
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q4/HIVSGASynMix/ConsensusClusterSubset.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q4/HIVSGASynMix/runQuiverFastaBas.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q2/HIVSGA/alignAndClusterMaxIns.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q1/polioStrains/alignPolioQsub.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q1/polioStrains/filterFull.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q1/polioStrains/cmph5ToMSAMaxInserts.py code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2012Q2/HIVSGA/pairwiseAlignDist.cc code/
+cp /home/UNIXHOME/mbrown/mbrown/workspace2010Q3/ccsAutomateV2/errFromCmph5.py code/
+
+Update code to assume all scripts are in the PATH. added she-bangs
+rather than python `which script`.
+
+================================
+
+export PATH=/home/UNIXHOME/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code:$PATH
+time ConsensusClusterSubset.py \
+--runDir testit \
+--fasta /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/2450417-0003.fasta \
+--ref HIVemory.fasta \
+--spanThreshold=6400 \
+--entropyThreshold=1.0 \
+--basfofn /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/2450417-0003.bas.fofn \
+> 2450417-0003.workflow.output 2>&1 &
+
+Old results in: /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/span-threshold-6400/cc-2450417-0003/
+
+Quiver estimated a different consensus: a new codon and one base
+difference! TODO: why is this???
+
+---- Ran again:
+export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526; source $SEYMOUR_HOME/etc/setup.sh;
+blasr -m 5 testit/quiverResult.consensus.fasta /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/span-threshold-6400/cc-2450417-0003/quiverResult.consensus.fasta
+single base difference.
+
+================================
+
+Push the code to git so it can be tracked and others can get it.
+
+---- config
+$ cat ~/.gitconfig
+[user]
+  name = Michael Brown
+  email = mbrown@pacificbiosciences.com
+[core]
+  editor = emacs
+  pager = cat
+
+$ git config user.name
+$ git config -l
+
+(load "/usr/share/doc/git-core/contrib/emacs/git.el")
+(load "/usr/share/doc/git-core/contrib/emacs/git-blame.el")
