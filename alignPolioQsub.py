@@ -17,15 +17,12 @@ def main():
     bash5 = limsid
 
     cmdTemp = """#!/bin/bash
-export LD_LIBRARY_PATH_OLD=$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="" 
-export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526;
+export SEYMOUR_HOME=%s;
 . $SEYMOUR_HOME/etc/setup.sh;
-export WORKFLOWS=/mnt/secondary/Smrtpipe/martin/8081/data/workflows/;
 
 cd %s
 
-compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=8  --noXML --h5mode=w \
+compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=1  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --tmpDir=/scratch --debug \
@@ -35,7 +32,7 @@ compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=8  --noXML
 errFromCmph5.py %s | sort -n -k 2 > %s.error
 """
 
-    cmd  = cmdTemp % (outdir, outfile, bash5, refstrain, outfile, outfile)
+    cmd  = cmdTemp % (os.environ['SEYMOUR_HOME'],outdir, outfile, bash5, refstrain, outfile, outfile)
 
     print cmd
 

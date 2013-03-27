@@ -1,0 +1,100 @@
+<pre>
+
+goal: install pacbio smrtanalysis on this old laptop (Intel Core2 Duo
+CPU P9700 @ 2.80GHz, 4GB ram) and run clusteringconsensus on HIV data.
+
+================================
+
+Run inside a virtual machine with one processor, 2gb ram, and 10.04
+ubutnu 64-bit.
+
+- sudo apt-get-install virtualbox
+
+- Get 10.04 ubuntu 64-bit iso from ubuntu and do standard install.
+
+- Install R: sudo apt-get install r-base  # also installs libgfortran.so.3
+
+- changed to bridged network adapter for ssh server, so I can log into
+it.
+
+================================
+
+I somewhat follow the instructions from Pacbio (not entirely because
+it sets up a whole compute cluster with graphical interface which I
+don't entirely need for this analysis):
+
+http://files.pacb.com/software/smrtanalysis/1.4/doc/SMRT%20Analysis%20Software%20Installation%20(v1.4.0).pdf
+
+----
+
+get the tar: http://files.pacb.com/software/smrtanalysis/1.4/smrtanalysis-1.4-ubuntu-10.04.tgz
+
+export SEYMOUR_HOME=/opt/smrtanalysis
+sudo tar -C /opt -xvvzf smrtanalysis-1.4-ubuntu-10.04.tgz
+sudo ln -s /opt/smrtanalysis-1.4.0 /opt/smrtanalysis
+sudo chown -R mbrown:mbrown /opt/smrtanalysis-1.4.0 # mbrown is me, change to you...
+
+edit /opt/smrtanalysis-1.4.0/etc/setup.sh to point to install with
+this line: SEYMOUR_HOME=/opt/smrtanalysis
+
+# setup scratch directory
+cd /
+sudo mkdir scratch
+sudo chown mbrown scratch
+
+export SEYMOUR_HOME=/opt/smrtanalysis
+source /opt/smrtanalysis/etc/setup.sh
+
+$ blasr # SUCCESS it works and produces output
+
+$ compareSequences.py --help # SUCCESS it works and produces output
+
+================================
+
+Now get my calling scripts. NOTE: Quiver is bundled in 1.4 now! No
+separate install and no need to activate in code...
+
+wget http://usmp-acid.nanofluidics.com/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code.zip
+unzip code
+
+================================
+
+Get ready to run clusteringconsensus.
+
+---- get the data: fasta, generic HIV reference, and bas.h5
+
+wget http://usmp-acid.nanofluidics.com/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/2450417-0003.fasta
+wget http://usmp-acid.nanofluidics.com/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/HIVemory.fasta
+scp mbrown@mp-f027:/mnt/data3/vol53/2450417/0003/Analysis_Results/m121216_032138_sherri_c100428272550000001823056101121396_s1_p0.bas.h5 ./
+
+Construct 2450417-0003.bas.fofn with this line pointing to the
+.bas.h5:
+/home/mbrown/Desktop/smrtanalysis/m121216_032138_sherri_c100428272550000001823056101121396_s1_p0.bas.h5
+
+I updated all export SEYMOUR_HOME in the code to
+os.envron['SEYMOUR_HOME'] to reflect the install.
+
+Execute:
+
+export SEYMOUR_HOME=/opt/smrtanalysis
+source /opt/smrtanalysis/etc/setup.sh
+export PATH=/home/mbrown/Desktop/smrtanalysis/code:$PATH
+time ConsensusClusterSubset.py \
+--runDir testit \
+--fasta 2450417-0003.fasta \
+--ref HIVemory.fasta \
+--spanThreshold=6400 \
+--entropyThreshold=1.0 \
+--basfofn 2450417-0003.bas.fofn \
+> 2450417-0003.workflow.output 2>&1 &
+
+It ran no problem in 49 minutes in a virtual machine with single core
+Intel Core2 Duo P9700 with 2GB of ram!!
+
+real	48m52.374s
+user	32m31.540s
+sys	4m16.220s
+
+RESULT: You can run HIV analysis on an underpowered laptop!
+
+Pushed to https://github.com/mpsbpbi/clusteringConsensus

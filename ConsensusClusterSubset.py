@@ -65,12 +65,12 @@ def ConsensusClusterSubset(*argv, **options):
         # generate the index for subsetting
         indexfile = options["fasta"]+".index"
         if not os.path.exists(indexfile):
-            cmd = "export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526; . $SEYMOUR_HOME/etc/setup.sh; fastaindex --fasta %s --index %s" % (options["fasta"],indexfile)
+            cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastaindex --fasta %s --index %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile)
             runit(cmd)
 
         inputfasta = "%s/%s.fasta" % (options["runDir"], os.path.basename(options["subids"]))
         if not os.path.exists(inputfasta):
-            cmd = "export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (options["fasta"],indexfile,options["subids"],inputfasta)
+            cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile,options["subids"],inputfasta)
             runit(cmd)
     else:
         sys.stderr.write("LOG: using full fasta file with no subset\n")

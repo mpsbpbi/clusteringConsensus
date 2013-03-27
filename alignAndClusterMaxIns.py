@@ -73,8 +73,8 @@ def alignAndCluster(*argv, **options):
         # OLD: reffile = glob.glob("%s/*.fa" % options["ref"])[0]
         reffile = options["ref"]
 
-        cmd = "cd %s; export LD_LIBRARY_PATH_OLD=$LD_LIBRARY_PATH; export LD_LIBRARY_PATH=""; export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526; source $SEYMOUR_HOME/etc/setup.sh; export WORKFLOWS=/mnt/secondary/Smrtpipe/martin/8081/data/workflows/; cmph5ToMSAMaxInserts.py --cmph5=alignments.cmp.h5 --reffile=%s --msafile=aac.msa --idfile=aac.id --colfile=aac.col --rangeLow=0 --rangeHigh=999999 --seqLow=0 --seqHigh=999999 --filter=alignments.filterFull --maxInsert=4 >msajob.stout 2>msajob.stderr" % (options["runDir"],reffile)
-        cmdFile = "%s/msajob.sh" % options["runDir"]
+        cmd = "cd %s; export SEYMOUR_HOME=%s; source $SEYMOUR_HOME/etc/setup.sh; cmph5ToMSAMaxInserts.py --cmph5=alignments.cmp.h5 --reffile=%s --msafile=aac.msa --idfile=aac.id --colfile=aac.col --rangeLow=0 --rangeHigh=999999 --seqLow=0 --seqHigh=999999 --filter=alignments.filterFull --maxInsert=4 >msajob.stout 2>msajob.stderr" % (options["runDir"],os.environ['SEYMOUR_HOME'],reffile)
+        cmdFile = "%s/msajob.sh" % (options["runDir"])
         fp = open(cmdFile,"w")
         fp.write("%s\n" % cmd)
         fp.close()

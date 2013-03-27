@@ -37,15 +37,12 @@ def runQuiverFastaBas(*argv, **options):
     if not os.path.exists("%s/align.done" % options["runDir"]):
 
         template= """cd %s;
-export LD_LIBRARY_PATH_OLD=$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="" 
-export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526;
+export SEYMOUR_HOME=%s;
 . $SEYMOUR_HOME/etc/setup.sh;
-export WORKFLOWS=/mnt/secondary/Smrtpipe/martin/8081/data/workflows/;
 """
-        cmd = template % (options["runDir"])
+        cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'])
 
-        template= """compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=8  --noXML --h5mode=w \
+        template= """compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=1  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --debug \
@@ -93,9 +90,7 @@ sleep 2
 
         outvar = "%s/quiverResult" % (options["runDir"])
 
-        template = """unset PYTHONPATH
-source /home/UNIXHOME/mbrown/VE-QUIVER/bin/activate
-variantCaller.py \
+        template = """variantCaller.py \
 -vv  \
 -j8 --algorithm=quiver \
 %s \
