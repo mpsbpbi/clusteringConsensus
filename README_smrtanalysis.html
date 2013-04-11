@@ -51,11 +51,15 @@ $ compareSequences.py --help # SUCCESS it works and produces output
 
 ================================
 
-Now get my calling scripts. NOTE: Quiver is bundled in 1.4 now! No
-separate install and no need to activate in code...
+Now get my calling scripts from github. NOTE: you might have already
+done this if you're reading this README locally on your
+filesystem. NOTE: Quiver is bundled in 1.4 now! No separate install
+and no need to activate in code...
 
-wget http://usmp-acid.nanofluidics.com/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code.zip
-unzip code
+wget https://github.com/mpsbpbi/clusteringConsensus/archive/master.zip
+unzip master.zip
+
+# this creates a clusteringConsensus-master/ directory containing the code
 
 ================================
 
@@ -78,7 +82,7 @@ Execute:
 
 export SEYMOUR_HOME=/opt/smrtanalysis
 source /opt/smrtanalysis/etc/setup.sh
-export PATH=/home/mbrown/Desktop/smrtanalysis/code:$PATH
+export PATH=/home/mbrown/Desktop/smrtanalysis/clusteringConsensus-master:$PATH
 time ConsensusClusterSubset.py \
 --runDir testit \
 --fasta 2450417-0003.fasta \
