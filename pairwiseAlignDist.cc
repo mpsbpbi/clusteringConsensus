@@ -51,133 +51,161 @@ int main (int argc, const char** argv) {
   //cout.write (buffer,length);
 
   ////////////////////////////////
-  if (0){
-  // Now go through the alignment counting characters
-  int numbases;
-  char myc;
-  for (int cc=0; cc<(numcol-1); cc++){
-    numbases = 0;
-    for (int rr=0; rr<numrow; rr++){
-      myc = buffer[rowcolToIndex(numcol,rr,cc)];
-      if ( ((int)myc >= 65) && ((int)myc <= 122) ){
-	numbases ++;
-      }
-    }
-    cout << cc << "\t" << numbases << endl;
-  }
-  }
+  // look for the file ""distjob.usecols". if exists read in the
+  // columns to be used, otherwise do the work to find high entropy
+  // columns and write the results
 
-  ////////////////////////////////
-  // How many columns contain the minimum number of characters?
   int threshold = atoi(argv[4]);
   float ethreshold = atof(argv[5]);
-
-  int numbases;
-  char myc;
   int numAboveThreshold = 0;
-
-  //// hash
-  // unordered_map<int,int> goodColumns;
-  //     goodColumns[cc] = 1;
-  // for (unordered_map<int,int>::iterator it = goodColumns.begin(); it != goodColumns.end(); it++){
-  //   cout << it->first << " " << it->second << endl;
-  // }
-  // cout << goodColumns[15034] << endl; // 1
-  // cout << goodColumns[4] << endl;     // 0
-
-  vector<int> goodColumns;
-  double counts[5]; // ACGT-
-  double freqs[5]; // ACGT-
-  double sumCounts;
-  double entropy;
-
-  int doMatchOnly = 0; // Discard all insert columns in the alignment and only look at match.
-
-  for (int cc=0; cc<(numcol-1); cc++){
-    if ( (doMatchOnly ==1) && ( (cc % (maxInsert+1)) != 0) ){ continue; } // Skip all non-match positions
-
-    numbases = 0;
-    for (int ii=0; ii<5; ii++){ counts[ii]=0.01;}
-
-    for (int rr=0; rr<numrow; rr++){
-      myc = buffer[rowcolToIndex(numcol,rr,cc)];
-
-      if (myc=='A'||myc=='a'){ counts[0] += 1.0; }
-      if (myc=='C'||myc=='c'){ counts[1] += 1.0; }
-      if (myc=='G'||myc=='g'){ counts[2] += 1.0; }
-      if (myc=='T'||myc=='t'){ counts[3] += 1.0; }
-      if (myc=='-'||myc=='.'){ counts[4] += 1.0; }
-
-      if ( ((int)myc >= 65) && ((int)myc <= 122) ){
-	numbases ++;
-      }
-    }
-
-    // compute entropy
-    sumCounts=0.0;
-    int tot=5; // 4 for bases and 5 to include delete in entropy
-
-    for (int ii=0; ii<tot; ii++){ sumCounts += counts[ii];}
-    for (int ii=0; ii<tot; ii++){ freqs[ii] = counts[ii]/sumCounts;}
-    entropy = 0.0;
-    for (int ii=0; ii<tot; ii++){ entropy += -freqs[ii]*log(freqs[ii])/log(2.0);}
-
-    // if (cc==3964){
-    //   cerr << entropy << "::" << numbases << "::" << counts[0] << "," << counts[1] << "," << counts[2] << "," << counts[3] << "," << counts[4] << endl;
-    // }
-
-    // sort to get minor frequency 
-    int elements = sizeof(freqs)/sizeof(freqs[0]);
-    sort(freqs, freqs+elements);
-      
-    if (numbases>threshold){
-      if (entropy>ethreshold){      
-      // if (freqs[3] > 0.08){ // 2nd minor frequency > XX%, rather than entropy
-	numAboveThreshold++;
-	cerr << "cc " << cc << " numbases " << numbases << " entropy " << entropy << " freqs[4] " << freqs[4] << endl;
-	goodColumns.push_back(cc);
-      }
-    }
-  }
-
-  ////////
-  // remove all columns that are homopolymer positions in the
-  // reference (row==0), so cut down on HP errors affecting the
-  // distances.
-
-  unordered_map<int,int> HPCol;
-  //     goodColumns[cc] = 1;
-  // for (unordered_map<int,int>::iterator it = goodColumns.begin(); it != goodColumns.end(); it++){
-  //   cout << it->first << " " << it->second << endl;
-  // }
-  // goodColumns.count(x)
-
-  char prev,curr,next;
   int numHP = 0;
-  for (int pp = 1; pp < (numcol-1); pp++){
-    prev = buffer[rowcolToIndex(numcol,0,pp-1)];
-    curr = buffer[rowcolToIndex(numcol,0,pp)];
-    next = buffer[rowcolToIndex(numcol,0,pp+1)];
 
-    if ((curr == prev) || (curr==next)){
-      HPCol[pp] = 1;
-      numHP += 1;
-    }
-  }
+  cerr << "at ethreshold=\t" << ethreshold << "\ttreshold=\t" << threshold <<endl;
 
   vector<int> filteredColumns;
-  for (int i =0; i < goodColumns.size(); i++){
-    //    if (HPCol.count(goodColumns[i]) ==0){
-    // Take all columns not just non-HP columns now that deletes count less
-    if (1){
-      filteredColumns.push_back(goodColumns[i]);
+
+  ifstream usecolsfile("distjob.usecols");
+  if (usecolsfile.good()){
+    ////////////////////////////////
+    // read in list of integers specifying the columns to be used.
+    cerr << "LOG: reading in list of columns for clustering from 'distjob.usecols'" <<endl;
+    int tmpint;
+    while (usecolsfile>>tmpint){
+      filteredColumns.push_back(tmpint);
     }
+
+  } else {
+    ////////////////////////////////
+    if (0){
+      // Now go through the alignment counting characters
+      int numbases;
+      char myc;
+      for (int cc=0; cc<(numcol-1); cc++){
+	numbases = 0;
+	for (int rr=0; rr<numrow; rr++){
+	  myc = buffer[rowcolToIndex(numcol,rr,cc)];
+	  if ( ((int)myc >= 65) && ((int)myc <= 122) ){
+	    numbases ++;
+	  }
+	}
+	cout << cc << "\t" << numbases << endl;
+      }
+    }
+
+    ////////////////////////////////
+    // How many columns contain the minimum number of characters?
+    int numbases;
+    char myc;
+    int numAboveThreshold = 0;
+
+    //// hash
+    // unordered_map<int,int> goodColumns;
+    //     goodColumns[cc] = 1;
+    // for (unordered_map<int,int>::iterator it = goodColumns.begin(); it != goodColumns.end(); it++){
+    //   cout << it->first << " " << it->second << endl;
+    // }
+    // cout << goodColumns[15034] << endl; // 1
+    // cout << goodColumns[4] << endl;     // 0
+
+    vector<int> goodColumns;
+    double counts[5]; // ACGT-
+    double freqs[5]; // ACGT-
+    double sumCounts;
+    double entropy;
+
+    int doMatchOnly = 0; // Discard all insert columns in the alignment and only look at match.
+
+    for (int cc=0; cc<(numcol-1); cc++){
+      if ( (doMatchOnly ==1) && ( (cc % (maxInsert+1)) != 0) ){ continue; } // Skip all non-match positions
+
+      numbases = 0;
+      for (int ii=0; ii<5; ii++){ counts[ii]=0.01;}
+
+      for (int rr=0; rr<numrow; rr++){
+	myc = buffer[rowcolToIndex(numcol,rr,cc)];
+
+	if (myc=='A'||myc=='a'){ counts[0] += 1.0; }
+	if (myc=='C'||myc=='c'){ counts[1] += 1.0; }
+	if (myc=='G'||myc=='g'){ counts[2] += 1.0; }
+	if (myc=='T'||myc=='t'){ counts[3] += 1.0; }
+	if (myc=='-'||myc=='.'){ counts[4] += 1.0; }
+
+	if ( ((int)myc >= 65) && ((int)myc <= 122) ){
+	  numbases ++;
+	}
+      }
+
+      // compute entropy
+      sumCounts=0.0;
+      int tot=5; // 4 for bases and 5 to include delete in entropy
+
+      for (int ii=0; ii<tot; ii++){ sumCounts += counts[ii];}
+      for (int ii=0; ii<tot; ii++){ freqs[ii] = counts[ii]/sumCounts;}
+      entropy = 0.0;
+      for (int ii=0; ii<tot; ii++){ entropy += -freqs[ii]*log(freqs[ii])/log(2.0);}
+
+      // if (cc==3964){
+      //   cerr << entropy << "::" << numbases << "::" << counts[0] << "," << counts[1] << "," << counts[2] << "," << counts[3] << "," << counts[4] << endl;
+      // }
+
+      // sort to get minor frequency 
+      int elements = sizeof(freqs)/sizeof(freqs[0]);
+      sort(freqs, freqs+elements);
+      
+      if (numbases>threshold){
+	if (entropy>ethreshold){      
+	  // if (freqs[3] > 0.08){ // 2nd minor frequency > XX%, rather than entropy
+	  numAboveThreshold++;
+	  cerr << "cc " << cc << " numbases " << numbases << " entropy " << entropy << " freqs[4] " << freqs[4] << endl;
+	  goodColumns.push_back(cc);
+	}
+      }
+    }
+
+    ////////
+    // remove all columns that are homopolymer positions in the
+    // reference (row==0), so cut down on HP errors affecting the
+    // distances.
+
+    unordered_map<int,int> HPCol;
+    //     goodColumns[cc] = 1;
+    // for (unordered_map<int,int>::iterator it = goodColumns.begin(); it != goodColumns.end(); it++){
+    //   cout << it->first << " " << it->second << endl;
+    // }
+    // goodColumns.count(x)
+
+    char prev,curr,next;
+    for (int pp = 1; pp < (numcol-1); pp++){
+      prev = buffer[rowcolToIndex(numcol,0,pp-1)];
+      curr = buffer[rowcolToIndex(numcol,0,pp)];
+      next = buffer[rowcolToIndex(numcol,0,pp+1)];
+
+      if ((curr == prev) || (curr==next)){
+	HPCol[pp] = 1;
+	numHP += 1;
+      }
+    }
+
+    for (int i =0; i < goodColumns.size(); i++){
+      //    if (HPCol.count(goodColumns[i]) ==0){
+      // Take all columns not just non-HP columns now that deletes count less
+      if (1){
+	filteredColumns.push_back(goodColumns[i]);
+      }
+    }
+
+    // write the results to "distjob.usecols"
+    ofstream outusecolsfile("distjob.usecols");
+    for (int i =0; i < filteredColumns.size(); i++){
+      outusecolsfile << filteredColumns[i] << endl;
+    }
+    outusecolsfile.close();
+
+    cerr << "numAboveThreshold=\t" << numAboveThreshold << "\tnumHP=\t" << numHP << endl;
   }
 
-  cerr << "at ethreshold=\t" << ethreshold << "\ttreshold=\t" << threshold << "\tnumAboveThreshold=\t" << numAboveThreshold;
-  cerr << "\tnumHP=\t" << numHP << "\tfilteredColumns.size()=\t"  << filteredColumns.size() << endl;
-
-  cerr << "filtered columns ";
+  // got the columns either by reading the file or computing it
+  cerr << "filteredColumns.size()=\t"  << filteredColumns.size() << endl;
   for (int i =0; i < filteredColumns.size(); i++){
     cerr << filteredColumns[i] << " ";
   }

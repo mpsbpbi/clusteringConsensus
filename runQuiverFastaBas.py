@@ -42,7 +42,7 @@ export SEYMOUR_HOME=%s;
 """
         cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'])
 
-        template= """compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=1  --noXML --h5mode=w \
+        template= """compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --debug \
@@ -50,7 +50,7 @@ export SEYMOUR_HOME=%s;
 %s
 sleep 2
 """
-        toadd = template % (outh5,inputfasta,options["ref"])
+        toadd = template % (options["nproc"],outh5,inputfasta,options["ref"])
         cmd = cmd+toadd
         
         template="""loadPulses %s \
@@ -128,6 +128,7 @@ if __name__ == "__main__":
     parser.add_option("--fasta", type="string", dest="fasta", help="the fasta files containing HIV genome reads")
     parser.add_option("--ref", type="string", dest="ref", help="the generic reference. HIVemory.fasta")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 list. HIV.bash5.fofn")
+    parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
 
     (options, args) = parser.parse_args()
 
@@ -135,5 +136,8 @@ if __name__ == "__main__":
         print "HIV quiver workflow:"
         parser.print_help()
         sys.exit(1)
+
+    if not options.nproc:
+        options.nproc = "1"
 
     runQuiverFastaBas(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

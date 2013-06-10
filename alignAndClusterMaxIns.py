@@ -39,12 +39,29 @@ def alignAndCluster(*argv, **options):
 
     ## submit the alignment job
     if not os.path.exists("%s/clusalignments.cmd" % options["runDir"]):
-        cmd = "cd %s; alignPolioQsub.py %s alignments.cmp.h5 %s %s > runqsub.sh" % (options["runDir"],options["limsID"], options["ref"], options["runDir"])
+
+        cmdTemp = """#!/bin/bash
+export SEYMOUR_HOME=%s;
+. $SEYMOUR_HOME/etc/setup.sh;
+
+cd %s
+
+compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
+--h5fn=%s \
+-x -bestn 1 \
+--tmpDir=/scratch --debug \
+%s \
+%s
+
+errFromCmph5.py %s | sort -n -k 2 > %s.error
+"""
+
+        cmd  = cmdTemp % (os.environ['SEYMOUR_HOME'], options["runDir"], options["nproc"], "alignments.cmp.h5", options["limsID"], options["ref"], "alignments.cmp.h5", "alignments.cmp.h5")
+
         fp = open("%s/clusalignments.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)
         fp.close()
         qsubWait( options["runDir"], "clusalignments.cmd" )
-        qsubWait( options["runDir"], "runqsub.sh" )
 
     sys.stderr.write("got clusalignments.cmd\n")
     sys.stderr.write("got .cmp.h5.error\n")
@@ -57,17 +74,6 @@ def alignAndCluster(*argv, **options):
     #sys.exit(0)
 
     #### cmph5ToMSA with filtered reads
-    # croiHIV/cmph5ToMSANoInserts.py \
-    # --cmph5=polioSabin1.24500100-0045.cmp.h5 \
-    # --reffile=sabin1.fasta \
-    # --msafile=polioSabin1.24500100-0045.msa \
-    # --idfile=polioSabin1.24500100-0045.readids \
-    # --colfile=polioSabin1.24500100-0045.colstats \
-    # --rangeLow=0 \
-    # --rangeHigh=20000 \
-    # --seqLow=0 \
-    # --seqHigh=200000 \
-    # --filter=polioSabin1.24500100-0045.cmp.h5.error.fullfiltered
     if not os.path.exists("%s/aac.msa" % options["runDir"]):
         # get ref file from ref repository
         # OLD: reffile = glob.glob("%s/*.fa" % options["ref"])[0]
@@ -84,7 +90,6 @@ def alignAndCluster(*argv, **options):
     #sys.exit(0)
 
     #### compute distances with 1/2 read coverage and entropy
-    # ../croiHIVFullGenome/msaToDistFilterNoDel polioSabin1.24500100-0045.msa 946 7442 473 1.0 > NODELentropy.polioSabin1.24500100-0045.msaToDist
     if not os.path.exists("%s/aac.msaToDist" % options["runDir"]):
         # get the size of the msa from the aac.msa.info file
         dat = runit("cat %s/aac.msa.info" % options["runDir"]).strip()
@@ -181,6 +186,7 @@ if __name__ == "__main__":
     parser.add_option("--limsID", type="string", dest="limsID", help="The LIMS ID to run. 24500100-0045")
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="How much of the gnome each read must span to be kept. 5500")
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="Minimum entropy a MSA column must have to be included in distance. 1.0")
+    parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
 
     (options, args) = parser.parse_args()
 
@@ -188,5 +194,8 @@ if __name__ == "__main__":
         print "Align Run Against Reference and Cluster:"
         parser.print_help()
         sys.exit(1)
+
+    if not options.nproc:
+        options.nproc = "1"
 
     alignAndCluster(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

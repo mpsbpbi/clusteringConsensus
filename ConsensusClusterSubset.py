@@ -79,7 +79,7 @@ def ConsensusClusterSubset(*argv, **options):
     # estimate quiver consensus
     # this puts computation onto cluster, so just run locally
     if not os.path.exists("%s/quiver.done" % options["runDir"]):
-        cmd = "runQuiverFastaBas.py --runDir %s --fasta %s --ref %s --basfofn %s" % (options["runDir"],inputfasta,options["ref"],options["basfofn"])
+        cmd = "runQuiverFastaBas.py --runDir %s --fasta %s --ref %s --basfofn %s --nproc %s" % (options["runDir"],inputfasta,options["ref"],options["basfofn"],options["nproc"])
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")
@@ -90,7 +90,7 @@ def ConsensusClusterSubset(*argv, **options):
     # cluster the reads and break into groups
     # this puts computation onto cluster, so just run locally
     if not os.path.exists("%s/aac.hclust.png" % options["runDir"]):
-        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"])
+        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"])
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")
@@ -108,6 +108,7 @@ if __name__ == "__main__":
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="how much of the reference must be spanned in order to keep read =6400")
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="for clustering the minimum entropy needed in a column to be kept =1.0")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
+    parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
 
     (options, args) = parser.parse_args()
 
@@ -115,5 +116,8 @@ if __name__ == "__main__":
         print "ConsensusClusterSubset.py:"
         parser.print_help()
         sys.exit(1)
+
+    if not options.nproc:
+        options.nproc = "1"
 
     ConsensusClusterSubset(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right
