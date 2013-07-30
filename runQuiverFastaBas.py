@@ -61,8 +61,8 @@ sleep 2
         toadd = template % (options["basfofn"],outh5)
         cmd = cmd+toadd
 
-
-        template= """cmph5tools.py -d sort --deep --inPlace %s
+        # -d debug option removed!!
+        template= """cmph5tools.py sort --deep --inPlace %s
 """
         toadd = template % (outh5)
         cmd = cmd+toadd

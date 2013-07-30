@@ -90,7 +90,7 @@ def ConsensusClusterSubset(*argv, **options):
     # cluster the reads and break into groups
     # this puts computation onto cluster, so just run locally
     if not os.path.exists("%s/aac.hclust.png" % options["runDir"]):
-        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"])
+        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"])
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")
@@ -109,6 +109,7 @@ if __name__ == "__main__":
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="for clustering the minimum entropy needed in a column to be kept =1.0")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
+    parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
 
     (options, args) = parser.parse_args()
 
@@ -119,5 +120,8 @@ if __name__ == "__main__":
 
     if not options.nproc:
         options.nproc = "1"
+
+    if not options.doOverlap:
+        options.doOverlap = "0"
 
     ConsensusClusterSubset(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

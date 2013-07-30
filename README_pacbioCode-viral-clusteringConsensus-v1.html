@@ -61,6 +61,7 @@ time ConsensusClusterSubset.py \
 --spanThreshold=6400 \
 --entropyThreshold=1.0 \
 --basfofn /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/2450417-0003.bas.fofn \
+--nproc 1 \
 > 2450417-0003.workflow.output 2>&1 &
 
 Old results in: /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/span-threshold-6400/cc-2450417-0003/
@@ -72,6 +73,12 @@ difference! TODO: why is this???
 export SEYMOUR_HOME=/mnt/secondary/Smrtpipe/builds/smrtpipe_v2.116526; source $SEYMOUR_HOME/etc/setup.sh;
 blasr -m 5 testit/quiverResult.consensus.fasta /home/UNIXHOME/mbrown/mbrown/workspace2013Q1/emoryHIVTrans/span-threshold-6400/cc-2450417-0003/quiverResult.consensus.fasta
 single base difference.
+
+================================
+
+NOTE: you can now specify columns to use for clustering by creating
+the file "distjob.usecols" (one integer per line specifying the
+alignment column)
 
 ================================
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <math.h>
 #include <algorithm>
+#include <string.h>
 
 using namespace std;
 
@@ -19,6 +20,7 @@ int main (int argc, const char** argv) {
      argv[4] = threshold (Minimum number of characters in column to keep it.)
      argv[5] = entropy threshold
      argv[6] = max insert size in alignment. from cmph5ToMSAMaxInserts.py --maxInsert=4
+     argv[7] = "overlap" or "full" (or null). is the distance based on overlap region or full.
    */
 
   int length;
@@ -42,6 +44,18 @@ int main (int argc, const char** argv) {
   int numrow = atoi(argv[2]);
   int numcol = atoi(argv[3])+1;
   int maxInsert = atoi(argv[6]);
+
+  int doOverlap;
+  if (argc<8){
+    doOverlap=0;
+  } else {
+    if (strcmp(argv[7],"overlap")==0){
+      doOverlap=1;
+    } else {
+      doOverlap=0;
+    }
+  }
+  cerr << "doOverlap: " << doOverlap << endl;
 
   cerr << argv[1] << endl;
   cerr << "length= " << length << " should be " << numrow << "*" << numcol << "=" << (numrow*numcol) << endl;
@@ -298,22 +312,54 @@ int main (int argc, const char** argv) {
   dist["  "] = 0.1;
 
   int thisc;
-  double dsum;
+  double doverlap,doverlapZ,dglobal,dglobalZ;
+  char cc1;
+  char cc2;
   string key;
   double ratio;
+  double numer, denom;
+
   for (int ii=0; ii<(numrow-1); ii++){
     for (int jj=(ii+1); jj<numrow; jj++){
-      dsum = 0.0;
+
+      doverlap = 0.0;
+      doverlapZ = 0.0;
+      dglobal = 0.0;
+      dglobalZ = 0.0;
+
       for (int cc=0; cc<filteredColumns.size(); cc++){
 	thisc = filteredColumns[cc];
 	key = "";
-	key += buffer[rowcolToIndex(numcol,ii,thisc)];
-	key += buffer[rowcolToIndex(numcol,jj,thisc)];
-	// cout << thisc << "\t" << key << "\t" << dist[key] << endl;
-	dsum += dist[key];
+	cc1 = buffer[rowcolToIndex(numcol,ii,thisc)];
+	cc2 = buffer[rowcolToIndex(numcol,jj,thisc)];
+	key += cc1;
+	key += cc2;
+	if ((cc1 != ' ') && (cc2 != ' ')){
+	  // information at both
+	  doverlap += dist[key];
+	  doverlapZ += 1.0;
+	}
+	dglobal += dist[key];
+	dglobalZ += 1.0;
       }
-      ratio = dsum/(double)filteredColumns.size();
-      cout << ii << "\t" << jj << "\t" << ratio << endl;
+
+      if (doOverlap != 1){
+	// global
+	numer = dglobal;
+	denom = dglobalZ;
+	ratio = dglobal/dglobalZ;
+      } else {
+	// overlap
+	numer=doverlap;
+	denom = doverlapZ;
+	if (doverlapZ == 0.0){
+	  // no information, assume identical
+	  ratio=0.0;
+	} else {
+	  ratio = doverlap/doverlapZ;
+	}
+      }
+      cout << ii << "\t" << jj << "\t" << ratio << "\t" << dglobal << "\t" << dglobalZ << "\t" << doverlap << "\t" << doverlapZ << endl;
     }
   }
 

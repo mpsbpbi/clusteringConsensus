@@ -97,7 +97,10 @@ errFromCmph5.py %s | sort -n -k 2 > %s.error
         mycol = ff[14]
         myrow = ff[16]
         myrowhalf = int(myrow)/2 # TODO: this was /2 or /8 for smaller
-        cmd = "cd %s; pairwiseAlignDist aac.msa %s %s %d %s %d > aac.msaToDist 2>distjob.err" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
+        if options["doOverlap"]=="1":
+            cmd = "cd %s; pairwiseAlignDist aac.msa %s %s %d %s %d overlap > aac.msaToDist 2>distjob.err" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
+        else:
+            cmd = "cd %s; pairwiseAlignDist aac.msa %s %s %d %s %d > aac.msaToDist 2>distjob.err" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
 
         cmdFile = "%s/distjob.sh" % options["runDir"]
         fp = open(cmdFile,"w")
@@ -187,6 +190,7 @@ if __name__ == "__main__":
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="How much of the gnome each read must span to be kept. 5500")
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="Minimum entropy a MSA column must have to be included in distance. 1.0")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
+    parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
 
     (options, args) = parser.parse_args()
 
@@ -197,5 +201,8 @@ if __name__ == "__main__":
 
     if not options.nproc:
         options.nproc = "1"
+
+    if not options.doOverlap:
+        options.doOverlap = "0"
 
     alignAndCluster(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right
