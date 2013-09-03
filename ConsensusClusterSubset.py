@@ -44,12 +44,16 @@ def ConsensusClusterSubset(*argv, **options):
     options["ref"] = os.path.abspath(options["ref"])
     options["basfofn"] = os.path.abspath(options["basfofn"])
 
-    sys.stderr.write("LOG %s : running ConsensusClusterSubset %s\n" % (str(datetime.datetime.now()), str(options.items())))
-
     if not os.path.exists(options["runDir"]):
         cmd = "mkdir %s" % options["runDir"]
         print cmd
         runit(cmd)
+
+    sys.stderr.write("LOG %s : running ConsensusClusterSubset %s\n" % (str(datetime.datetime.now()), str(options.items())))
+    fp = open("%s/options.items" % options["runDir"],"w")
+    for (k,v) in options.items():
+        fp.write("%s\t%s\n" % (k,v))
+    fp.close()
 
     ################################
     # possibly subset reads
@@ -96,6 +100,10 @@ def ConsensusClusterSubset(*argv, **options):
         sys.stderr.write("\n")
         sys.stderr.write(dat[1])
         sys.stderr.write("\n")
+
+    ################################
+    # all done file
+    runit("touch %s/all.done" % options["runDir"])
 
 ################################
 

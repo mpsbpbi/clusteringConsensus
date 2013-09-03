@@ -195,7 +195,7 @@ def cmph5ToMSA(*argv, **options):
                 # record the full insert for later
                 msainsf.write("%d %d %s\n" % (rr, cc, sa))
 
-                sa = sa[0:mymi]
+                sa = sa[0:(mymi+1)]
                 
             # for inserts    
             if (len(sa)==0):
