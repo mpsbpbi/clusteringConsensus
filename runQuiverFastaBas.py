@@ -10,7 +10,8 @@ import glob
 ################################
 def runit( cmd ):
     sys.stderr.write("runit %s\n" % cmd)
-    return subprocess.Popen( cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]
+    return subprocess.Popen( cmd, stdout=subprocess.PIPE, shell=True, executable='/bin/bash').communicate()[0]
+    # NOTE: shell inherits environment!
 
 ################################
 
@@ -38,11 +39,12 @@ def runQuiverFastaBas(*argv, **options):
 
         template= """cd %s;
 export SEYMOUR_HOME=%s;
-. $SEYMOUR_HOME/etc/setup.sh;
+source $SEYMOUR_HOME/etc/setup.sh;
+export PATH=%s
 """
-        cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'])
+        cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
 
-        template= """compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
+        template= """compareSequences.py --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --debug \
@@ -75,9 +77,9 @@ sleep 2
         cmd = "cd %s; chmod 777 alignments.cmd" % (options["runDir"])
         print cmd
         runit(cmd)
-        cmd = "bash %s/alignments.cmd" % (options["runDir"])
+        cmd = "source %s/alignments.cmd" % (options["runDir"])
         print cmd
-        runit(cmd)
+        print runit(cmd)
 
         cmd = "touch %s/align.done" % options["runDir"]
         runit(cmd)
@@ -111,7 +113,7 @@ sleep 2
         cmd = "cd %s; chmod 777 var.cmd" % (options["runDir"])
         print cmd
         runit(cmd)
-        cmd = "bash %s/var.cmd" % (options["runDir"])
+        cmd = "source %s/var.cmd" % (options["runDir"])
         print cmd
         runit(cmd)
 

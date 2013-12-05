@@ -11,6 +11,7 @@ import glob
 def runit( cmd ):
     sys.stderr.write("runit %s\n" % cmd)
     return subprocess.Popen( cmd, stdout=subprocess.PIPE, shell=True, executable='/bin/bash').communicate()[0]
+    # NOTE: shell inherits environment from the shell running python!
 
 ################################
 # fakes running qsub so it's not needed
@@ -18,7 +19,7 @@ def qsubWait( runDir, cmdFile ):
 
     cmd = "cd %s; chmod 777 %s" % (runDir, cmdFile)
     runit(cmd)
-    cmd = "bash %s/%s" % (runDir,cmdFile)
+    cmd = "source %s/%s" % (runDir,cmdFile)
     print cmd
     runit(cmd)
 
@@ -42,11 +43,11 @@ def alignAndCluster(*argv, **options):
 
         cmdTemp = """#!/bin/bash
 export SEYMOUR_HOME=%s;
-. $SEYMOUR_HOME/etc/setup.sh;
-
+source $SEYMOUR_HOME/etc/setup.sh;
+export PATH=%s
 cd %s
 
-compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
+compareSequences.py --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --tmpDir=/scratch --debug \
@@ -56,7 +57,7 @@ compareSequences.py --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXM
 errFromCmph5.py %s | sort -n -k 2 > %s.error
 """
 
-        cmd  = cmdTemp % (os.environ['SEYMOUR_HOME'], options["runDir"], options["nproc"], "alignments.cmp.h5", options["limsID"], options["ref"], "alignments.cmp.h5", "alignments.cmp.h5")
+        cmd  = cmdTemp % (os.environ['SEYMOUR_HOME'], os.environ['PATH'], options["runDir"], options["nproc"], "alignments.cmp.h5", options["limsID"], options["ref"], "alignments.cmp.h5", "alignments.cmp.h5")
 
         fp = open("%s/clusalignments.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)
@@ -79,7 +80,7 @@ errFromCmph5.py %s | sort -n -k 2 > %s.error
         # OLD: reffile = glob.glob("%s/*.fa" % options["ref"])[0]
         reffile = options["ref"]
 
-        cmd = "cd %s; export SEYMOUR_HOME=%s; source $SEYMOUR_HOME/etc/setup.sh; cmph5ToMSAMaxInserts.py --cmph5=alignments.cmp.h5 --reffile=%s --msafile=aac.msa --idfile=aac.id --colfile=aac.col --rangeLow=0 --rangeHigh=999999 --seqLow=0 --seqHigh=999999 --filter=alignments.filterFull --maxInsert=4 >msajob.stout 2>msajob.stderr" % (options["runDir"],os.environ['SEYMOUR_HOME'],reffile)
+        cmd = "cd %s; export SEYMOUR_HOME=%s; source $SEYMOUR_HOME/etc/setup.sh; export PATH=%s ; cmph5ToMSAMaxInserts.py --cmph5=alignments.cmp.h5 --reffile=%s --msafile=aac.msa --idfile=aac.id --colfile=aac.col --rangeLow=0 --rangeHigh=999999 --seqLow=0 --seqHigh=999999 --filter=alignments.filterFull --maxInsert=4 >msajob.stout 2>msajob.stderr" % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'],reffile)
         cmdFile = "%s/msajob.sh" % (options["runDir"])
         fp = open(cmdFile,"w")
         fp.write("%s\n" % cmd)

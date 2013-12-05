@@ -43,6 +43,7 @@ def ConsensusClusterSubset(*argv, **options):
     options["fasta"] = os.path.abspath(options["fasta"])
     options["ref"] = os.path.abspath(options["ref"])
     options["basfofn"] = os.path.abspath(options["basfofn"])
+    if not (options["subids"] == None): options["subids"] = os.path.abspath(options["subids"])
 
     if not os.path.exists(options["runDir"]):
         cmd = "mkdir %s" % options["runDir"]
@@ -58,23 +59,22 @@ def ConsensusClusterSubset(*argv, **options):
     ################################
     # possibly subset reads
     inputfasta= options["fasta"]
-    if not options["subids"] == None:
-        options["subids"] = os.path.abspath(options["subids"])
-
+    if not (options["subids"] == None):
         # does the subset id file exist?
         if not os.path.exists(options["subids"]):
             sys.stderr.write("ERROR: the given subset id file does not exist. Exiting. %s\n" % options["subids"])
             sys.exit(1)
 
-        # generate the index for subsetting
-        indexfile = options["fasta"]+".index"
-        if not os.path.exists(indexfile):
-            cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastaindex --fasta %s --index %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile)
-            runit(cmd)
+        # # generate the index for subsetting
+        # indexfile = options["fasta"]+".index"
+        # if not os.path.exists(indexfile):
+        #     cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastaindex --fasta %s --index %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile)
+        #     runit(cmd)
 
         inputfasta = "%s/%s.fasta" % (options["runDir"], os.path.basename(options["subids"]))
         if not os.path.exists(inputfasta):
-            cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile,options["subids"],inputfasta)
+            # cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile,options["subids"],inputfasta)
+            cmd = "fastasub.py %s %s > %s" % (options["fasta"],options["subids"],inputfasta)
             runit(cmd)
     else:
         sys.stderr.write("LOG: using full fasta file with no subset\n")
@@ -94,6 +94,15 @@ def ConsensusClusterSubset(*argv, **options):
     # cluster the reads and break into groups
     # this puts computation onto cluster, so just run locally
     if not os.path.exists("%s/aac.hclust.png" % options["runDir"]):
+        # check to see of spanThreshold is a percentage %
+        if options["spanThreshold"][-1]== "%":
+            dat = runit("fastalength %s/quiverResult.consensus.fasta" % options["runDir"])
+            reflength = int(dat[0].split(" ")[0])
+            frac = float(options["spanThreshold"][:-1])/100.0
+            newSpanThreshold = int(frac*reflength+0.5)
+            sys.stderr.write("newSpanThreshold= %d = %d*%f\n" % (newSpanThreshold,reflength,frac))
+            options["spanThreshold"] = str(newSpanThreshold)
+
         cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"])
         dat = runit(cmd)
         sys.stderr.write(dat[0])
@@ -113,7 +122,7 @@ if __name__ == "__main__":
     parser.add_option("--fasta", type="string", dest="fasta", help="the fasta files containing HIV genome reads")
     parser.add_option("--subids", type="string", dest="subids", help="a file of newline separated read ids to use")
     parser.add_option("--ref", type="string", dest="ref", help="the generic reference. HIVemory.fasta")
-    parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="how much of the reference must be spanned in order to keep read =6400")
+    parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="how much of the reference must be spanned in order to keep read =6400 or percentage of ref=99.2%")
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="for clustering the minimum entropy needed in a column to be kept =1.0")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")

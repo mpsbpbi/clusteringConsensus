@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __doc__ = """python cluconRecurse.py cluconFrom4k-1-runallgivenref-AC222_D18_assembly.fa-222-18_15Mar~A01_1/ > cluconFrom4k-1-runallgivenref-AC222_D18_assembly.fa-222-18_15Mar~A01_1.cluconRecurse
 
 Convention: foo -> foo-~_D1C1, foo-~_D1C2
@@ -11,7 +12,9 @@ threshNumber = 16
 
 children = [(sys.argv[1],0)]
 
-template = "export SEYMOUR_HOME=/mnt/secondary/Smrtanalysis/opt/smrtanalysis;  source $SEYMOUR_HOME/etc/setup.sh; export PATH=/home/UNIXHOME/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code:$PATH; cd /home/UNIXHOME/mbrown/mbrown/workspace2013Q3/partners-hiv; time ConsensusClusterSubset.py --nproc=8 --runDir %s --fasta %s --subids %s --ref %s --spanThreshold=%s --entropyThreshold=%s --basfofn %s"
+tree = { sys.argv[1]: {"name": sys.argv[1], "children": list() } }
+
+template = "export SEYMOUR_HOME=/mnt/secondary/Smrtanalysis/opt/smrtanalysis;  source $SEYMOUR_HOME/etc/setup.sh; export PATH=/home/UNIXHOME/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code:$PATH; cd %s; time ConsensusClusterSubset.py --nproc=8 --runDir %s --fasta %s --subids %s --ref %s --spanThreshold=%s --entropyThreshold=%s --basfofn %s"
 # runDir fasta subids ref spanThreshold entropyThreshold basfofn
 
 while len(children)>0:
@@ -50,6 +53,9 @@ while len(children)>0:
             # child exists, work on it next iteration
             print "push %s" % mychild
             children.append( (mychild, mydepth) )
+            newnode = {"name": mychild, "children": list()}
+            tree[current[0]]["children"].append(newnode)
+            tree[mychild] = newnode
 
         else:
             # we need to run it
@@ -63,6 +69,7 @@ while len(children)>0:
                 options[ff[0]]=ff[1]
 
             # runDir fasta subids ref spanThreshold entropyThreshold basfofn
-            cmd = template % (mychild, options["fasta"], cc, "%s/quiverResult.consensus.fasta" % current[0], options["spanThreshold"], options["entropyThreshold"], options["basfofn"])
+            cmd = template % (os.getcwd(), mychild, options["fasta"], cc, "%s/quiverResult.consensus.fasta" % current[0], options["spanThreshold"], options["entropyThreshold"], options["basfofn"])
             print cmd
  
+print "tree=%s" % tree[ sys.argv[1] ]

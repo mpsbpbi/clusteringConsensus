@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __doc__= """python mutationAnalysis.py aac.msa 591 44795
 
 I want to read in the alginemnts "aac.msa" with 44795 columns and 591
