@@ -14,7 +14,7 @@ children = [(sys.argv[1],0)]
 
 tree = { sys.argv[1]: {"name": sys.argv[1], "children": list() } }
 
-template = "export SEYMOUR_HOME=/mnt/secondary/Smrtanalysis/opt/smrtanalysis;  source $SEYMOUR_HOME/etc/setup.sh; export PATH=/home/UNIXHOME/mbrown/mbrown/workspace2013Q1/pacbioCode-viral-clusteringConsensus-v1/code:$PATH; cd %s; time ConsensusClusterSubset.py --nproc=8 --runDir %s --fasta %s --subids %s --ref %s --spanThreshold=%s --entropyThreshold=%s --basfofn %s"
+template = "export SEYMOUR_HOME=%s;  source $SEYMOUR_HOME/etc/setup.sh; export PATH=%s; cd %s; time ConsensusClusterSubset.py --nproc=8 --runDir %s --fasta %s --subids %s --ref %s --spanThreshold=%s --entropyThreshold=%s --basfofn %s"
 # runDir fasta subids ref spanThreshold entropyThreshold basfofn
 
 while len(children)>0:
@@ -69,7 +69,7 @@ while len(children)>0:
                 options[ff[0]]=ff[1]
 
             # runDir fasta subids ref spanThreshold entropyThreshold basfofn
-            cmd = template % (os.getcwd(), mychild, options["fasta"], cc, "%s/quiverResult.consensus.fasta" % current[0], options["spanThreshold"], options["entropyThreshold"], options["basfofn"])
+            cmd = template % (os.environ['SEYMOUR_HOME'], os.environ['PATH'], os.getcwd(), mychild, options["fasta"], cc, "%s/quiverResult.consensus.fasta" % current[0], options["spanThreshold"], options["entropyThreshold"], options["basfofn"])
             print cmd
  
 print "tree=%s" % tree[ sys.argv[1] ]
