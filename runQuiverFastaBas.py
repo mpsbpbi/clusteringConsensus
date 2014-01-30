@@ -44,7 +44,7 @@ export PATH=%s
 """
         cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
 
-        template= """compareSequences.py --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
+        template= """compareSequences.py --seed=1234 --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --debug \
@@ -92,6 +92,14 @@ sleep 2
 
         outvar = "%s/quiverResult" % (options["runDir"])
 
+        template= """cd %s;
+export SEYMOUR_HOME=%s;
+source $SEYMOUR_HOME/etc/setup.sh;
+export PATH=%s
+"""
+        cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
+
+
         template = """variantCaller.py \
 -vv  \
 -j8 --algorithm=quiver \
@@ -103,7 +111,7 @@ sleep 2
 
         # --parameter=AllQVsModel.C2
 
-        cmd = template % (outh5, options["ref"], outvar, outvar, outvar, outvar, outvar)
+        cmd = cmd+template % (outh5, options["ref"], outvar, outvar, outvar, outvar, outvar)
 
         fp = open("%s/var.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)

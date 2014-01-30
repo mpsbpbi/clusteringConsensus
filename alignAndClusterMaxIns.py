@@ -47,7 +47,7 @@ source $SEYMOUR_HOME/etc/setup.sh;
 export PATH=%s
 cd %s
 
-compareSequences.py --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
+compareSequences.py --seed=1234 --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
 --h5fn=%s \
 -x -bestn 1 \
 --tmpDir=/scratch --debug \
