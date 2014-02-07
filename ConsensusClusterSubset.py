@@ -103,7 +103,7 @@ def ConsensusClusterSubset(*argv, **options):
             sys.stderr.write("newSpanThreshold= %d = %d*%f\n" % (newSpanThreshold,reflength,frac))
             options["spanThreshold"] = str(newSpanThreshold)
 
-        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"])
+        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"])
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")

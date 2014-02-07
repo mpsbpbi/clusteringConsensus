@@ -37,6 +37,11 @@ def runQuiverFastaBas(*argv, **options):
         
     if not os.path.exists("%s/align.done" % options["runDir"]):
 
+        # use pbalign rather than compareSequences.py which is
+        # inconsistent.  to do this, I have to get a whitelist of
+        # fasta ids to use as pbalign must point directly to the
+        # bas.h5 for quiver
+
         template= """cd %s;
 export SEYMOUR_HOME=%s;
 source $SEYMOUR_HOME/etc/setup.sh;
@@ -44,30 +49,43 @@ export PATH=%s
 """
         cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
 
-        template= """compareSequences.py --seed=1234 --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
---h5fn=%s \
--x -bestn 1 \
+        # get list of fasta ids into infastaWhitelist.txt
+        dat = open(options["fasta"]).read().splitlines()
+        ofp = open("%s/infastaWhitelist.txt" % options["runDir"], "w")
+        for ll in dat:
+            if ll[0]==">":
+                # output fasta id with run/zmw ... and not /subread
+                ff = ll[1:].split("/")
+                ofp.write("%s\n" % "/".join(ff[:2]))
+        ofp.close()
+          
+        # get region table for input into pbalign
+        template= """filter_plsh5.py %s \
+--outputDir=%s \
+--outputFofn=%s \
+--outputSummary=filter_plsh5.outputSummary \
 --debug \
-%s \
-%s
-sleep 2
-"""
-        toadd = template % (options["nproc"],outh5,inputfasta,options["ref"])
-        cmd = cmd+toadd
-        
-        template="""loadPulses %s \
-%s \
--metrics DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag -byread
-sleep 2
-"""
-        toadd = template % (options["basfofn"],outh5)
-        cmd = cmd+toadd
+--logFile=filter_plsh5.log \
+--trim=False \
+--filter="ReadWhitelist=%s"\n""" 
+        cmd = cmd + template % (options["basfofn"], options["runDir"], "infastaWhitelist.filter.fofn", "infastaWhitelist.txt")
 
-        # -d debug option removed!!
-        template= """cmph5tools.py sort --deep --inPlace %s
-"""
-        toadd = template % (outh5)
-        cmd = cmd+toadd
+        # run the alignment
+        templateList = ["pbalign.py %s \\" % options["basfofn"],
+                        "%s \\" % options["ref"],
+                        "%s \\" % outh5,
+                        "--regionTable=infastaWhitelist.filter.fofn \\",
+                        "--forQuiver \\",
+                        "--hitPolicy=allbest \\",
+                        "--nproc=%s \\" % options["nproc"],
+                        "--seed=1234 \\",
+                        "--minLength 2048 \\",
+                        "--minAccuracy 50 \\",
+                        "--maxDivergence 50 \\",
+                        "--noSplitSubreads \\",
+                        "--maxHits 1",
+                        "\n"]
+        cmd = cmd + "\n".join(templateList)
 
         fp = open("%s/alignments.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)

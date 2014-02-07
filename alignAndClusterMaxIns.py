@@ -41,27 +41,40 @@ def alignAndCluster(*argv, **options):
     ## submit the alignment job
     if not os.path.exists("%s/clusalignments.cmd" % options["runDir"]):
 
-        cmdTemp = """#!/bin/bash
+        # use pbalign rather than compareSequences.py. I can use the
+        # subsetting done when generating the sample Quiver reference
+        # here without recomputing it
+
+        template= """#!/bin/bash
+cd %s;
 export SEYMOUR_HOME=%s;
 source $SEYMOUR_HOME/etc/setup.sh;
 export PATH=%s
-cd %s
-
-compareSequences.py --seed=1234 --respectFastaGivenSubreadLocation --info --useGuidedAlign --algorithm=blasr --nproc=%s  --noXML --h5mode=w \
---h5fn=%s \
--x -bestn 1 \
---tmpDir=/scratch --debug \
-%s \
-%s
-
-errFromCmph5.py %s | sort -n -k 2 > %s.error
 """
+        cmd = template % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
 
-        cmd  = cmdTemp % (os.environ['SEYMOUR_HOME'], os.environ['PATH'], options["runDir"], options["nproc"], "alignments.cmp.h5", options["limsID"], options["ref"], "alignments.cmp.h5", "alignments.cmp.h5")
+        # run the alignment
+        templateList = ["pbalign.py %s \\" % options["limsID"],
+                        "%s \\" % options["ref"],
+                        "%s \\" % "alignments.cmp.h5",
+                        "--regionTable=infastaWhitelist.filter.fofn \\",
+                        "--hitPolicy=allbest \\",
+                        "--nproc=%s \\" % options["nproc"],
+                        "--seed=1234 \\",
+                        "--minLength 2048 \\",
+                        "--minAccuracy 50 \\",
+                        "--maxDivergence 50 \\",
+                        "--noSplitSubreads \\",
+                        "--maxHits 1",
+                        "\n",
+                        "errFromCmph5.py %s | sort -n -k 2 > %s.error" % ("alignments.cmp.h5", "alignments.cmp.h5"),
+                        "\n"]
+        cmd = cmd + "\n".join(templateList)
 
         fp = open("%s/clusalignments.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)
         fp.close()
+
         qsubWait( options["runDir"], "clusalignments.cmd" )
 
     sys.stderr.write("got clusalignments.cmd\n")

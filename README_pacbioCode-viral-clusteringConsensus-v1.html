@@ -98,3 +98,11 @@ $ git config -l
 
 (load "/usr/share/doc/git-core/contrib/emacs/git.el")
 (load "/usr/share/doc/git-core/contrib/emacs/git-blame.el")
+
+git push origin master
+
+# tagging
+git tag -a v1.01 -m "version using inconsistent compareSequences before pbalign"
+git push origin v1.01
+
+git tag -a v1.02-pbalign -m "version using pbalign"
