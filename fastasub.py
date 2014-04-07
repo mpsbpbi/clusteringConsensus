@@ -38,7 +38,10 @@ with open(sys.argv[1]) as fp:
             else:
                 realname = line[1:]
                 # handle sub
-                name = re.sub("[0-9_]+$","",realname)
+                if "ccs" in name:
+                    name = re.sub("ccs$","",realname)
+                else:
+                    name = re.sub("[0-9_]+$","",realname)
         else:
             seqBuffer.append( line )
     if len(seqBuffer)>0:

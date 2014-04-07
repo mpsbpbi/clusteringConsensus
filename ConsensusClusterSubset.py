@@ -77,18 +77,29 @@ def ConsensusClusterSubset(*argv, **options):
             cmd = "fastasub.py %s %s > %s" % (options["fasta"],options["subids"],inputfasta)
             runit(cmd)
     else:
-        sys.stderr.write("LOG: using full fasta file with no subset\n")
+        if options["CCS"]==0:
+            sys.stderr.write("LOG: using full fasta file with no subset\n")
+        else:
+            # pbalign won't parse CCS fasta ids from reads_of_insert! ERROR. Could not parse title m131210_065552_sherri_c100581732550000001823093904021452_s1_p0/10/ccs
+            inputfasta = "%s/all.fasta" % (options["runDir"])
+            # NOTE: the "0_1" is important, otherwise pbalign will refuse to align the fasta!!!!!
+            cmd = "cat %s | sed 's/ccs$/0_1/' > %s" % (options["fasta"],inputfasta)
+            runit(cmd)
 
     ################################
     # estimate quiver consensus
-    # this puts computation onto cluster, so just run locally
     if not os.path.exists("%s/quiver.done" % options["runDir"]):
-        cmd = "runQuiverFastaBas.py --runDir %s --fasta %s --ref %s --basfofn %s --nproc %s" % (options["runDir"],inputfasta,options["ref"],options["basfofn"],options["nproc"])
-        dat = runit(cmd)
-        sys.stderr.write(dat[0])
-        sys.stderr.write("\n")
-        sys.stderr.write(dat[1])
-        sys.stderr.write("\n")
+        if options["CCS"]=="0":
+            cmd = "runQuiverFastaBas.py --runDir %s --fasta %s --ref %s --basfofn %s --nproc %s" % (options["runDir"],inputfasta,options["ref"],options["basfofn"],options["nproc"])
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+        else:
+            # for CCS use reference unaltered without estimation
+            cmd = "cp %s %s/quiverResult.consensus.fasta; touch %s/quiver.done" % (options["ref"], options["runDir"], options["runDir"])
+            runit(cmd)
 
     ################################
     # cluster the reads and break into groups
@@ -103,7 +114,12 @@ def ConsensusClusterSubset(*argv, **options):
             sys.stderr.write("newSpanThreshold= %d = %d*%f\n" % (newSpanThreshold,reflength,frac))
             options["spanThreshold"] = str(newSpanThreshold)
 
-        cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"])
+        cmd = "null"
+        if options["CCS"]==0:
+            cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+        else:
+            cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")
@@ -127,6 +143,7 @@ if __name__ == "__main__":
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
     parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
+    parser.add_option("--CCS", type="string", dest="CCS", help="Use CCS fasta reads rather than raw from bas.h5. 1=yes 0=no. 0")
 
     (options, args) = parser.parse_args()
 
@@ -140,5 +157,8 @@ if __name__ == "__main__":
 
     if not options.doOverlap:
         options.doOverlap = "0"
+
+    if not options.CCS:
+        options.CCS = "0"
 
     ConsensusClusterSubset(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

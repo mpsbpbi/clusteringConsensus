@@ -71,6 +71,11 @@ export PATH=%s
                         "\n"]
         cmd = cmd + "\n".join(templateList)
 
+        # if CCS then run only the fasta CCS basecalls. TODO: this could be the .ccs.h5 to get quality
+        if options["CCS"]=="1":
+            cmd = cmd.replace("--regionTable=infastaWhitelist.filter.fofn \\\n","")
+            cmd = cmd.replace("--minLength 2048 \\\n","")
+
         fp = open("%s/clusalignments.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)
         fp.close()
@@ -205,6 +210,7 @@ if __name__ == "__main__":
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="Minimum entropy a MSA column must have to be included in distance. 1.0")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
     parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
+    parser.add_option("--CCS", type="string", dest="CCS", help="Use CCS fasta reads rather than raw from bas.h5. 1=yes 0=no. 0")
 
     (options, args) = parser.parse_args()
 
@@ -218,5 +224,8 @@ if __name__ == "__main__":
 
     if not options.doOverlap:
         options.doOverlap = "0"
+
+    if not options.CCS:
+        options.CCS = "0"
 
     alignAndCluster(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right
