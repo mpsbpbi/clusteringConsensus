@@ -77,7 +77,7 @@ def ConsensusClusterSubset(*argv, **options):
             cmd = "fastasub.py %s %s > %s" % (options["fasta"],options["subids"],inputfasta)
             runit(cmd)
     else:
-        if options["CCS"]==0:
+        if options["CCS"]=="0":
             sys.stderr.write("LOG: using full fasta file with no subset\n")
         else:
             # pbalign won't parse CCS fasta ids from reads_of_insert! ERROR. Could not parse title m131210_065552_sherri_c100581732550000001823093904021452_s1_p0/10/ccs
@@ -115,7 +115,7 @@ def ConsensusClusterSubset(*argv, **options):
             options["spanThreshold"] = str(newSpanThreshold)
 
         cmd = "null"
-        if options["CCS"]==0:
+        if options["CCS"]=="0":
             cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
         else:
             cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
