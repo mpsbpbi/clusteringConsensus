@@ -65,12 +65,6 @@ def ConsensusClusterSubset(*argv, **options):
             sys.stderr.write("ERROR: the given subset id file does not exist. Exiting. %s\n" % options["subids"])
             sys.exit(1)
 
-        # # generate the index for subsetting
-        # indexfile = options["fasta"]+".index"
-        # if not os.path.exists(indexfile):
-        #     cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastaindex --fasta %s --index %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile)
-        #     runit(cmd)
-
         inputfasta = "%s/%s.fasta" % (options["runDir"], os.path.basename(options["subids"]))
         if not os.path.exists(inputfasta):
             # cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile,options["subids"],inputfasta)
