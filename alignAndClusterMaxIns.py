@@ -62,8 +62,8 @@ export PATH=%s
                         "--nproc=%s \\" % options["nproc"],
                         "--seed=1234 \\",
                         "--minLength 2048 \\",
-                        "--minAccuracy 50 \\",
-                        "--maxDivergence 50 \\",
+                        "--minAccuracy 10 \\",
+                        "--maxDivergence 90 \\",
                         "--noSplitSubreads \\",
                         "--maxHits 1",
                         "\n",
@@ -115,7 +115,7 @@ export PATH=%s
         ff = dat.split(" ")
         mycol = ff[14]
         myrow = ff[16]
-        myrowhalf = int(myrow)/2 # TODO: this was /2 or /8 for smaller
+        myrowhalf = max(32,int(myrow)/100) # TODO: this was /2 or /8 for smaller
         if options["doOverlap"]=="1":
             cmd = "cd %s; pairwiseAlignDist aac.msa %s %s %d %s %d overlap > aac.msaToDist 2>distjob.err" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
         else:
@@ -157,8 +157,40 @@ plot(myhc,main="")
 dev.off()
 
 # break the reads ids into cluster groups
-# this is not the right threshold. TODO: optimize cut points
-myct = cutree(myhc, h=0.75)
+# compute threshold based on inputs
+############
+# goal: compute clustering cutoff bound based on simple binomial
+# get numPos from number of rows in distjob.usecols TODO: compute first before clustering
+# get totalPos from aac.msa.info columns= [-3] or wc
+# get numObjects from aac.msa.info rows= [-1] or wc
+#
+
+obsErr = function(totalPos){
+  # given we take most variable numPos positions with mean=0.26 (raw pairwise) error, what err to we get?
+  f = function(x){ (1.0 - exp(totalPos*pnorm(x,mean=0.26,sd=0.08,log=T))) -exp(-1)}
+  uniroot( f , interval=c(0,1))$root
+}
+
+thresholdGivenPositions=function(numPos){
+  useErr = obsErr(totalPos)
+  k=seq(0,numPos)
+  dist = pbinom(k,size=numPos,prob=useErr)
+  ur = uniroot(approxfun(k/numPos,dist-(1-2*0.05/(numObj*numObj))),interval=c(0,1))
+  return(ur$root)
+}
+
+numPos = as.numeric(scan(pipe("cat distjob.usecols | wc -l")))
+totalPos = as.numeric(scan(pipe("cat aac.col | wc -l")))
+numObj = as.numeric(scan(pipe("cat aac.id | wc -l")))
+
+mythresh = thresholdGivenPositions(numPos)
+write(mythresh, "clusterThreshold.txt")
+write.table(data.frame(mythresh,numPos,totalPos,numObj, obsErr(totalPos), 2*0.05/(numObj*numObj)), "clusterThreshold.support",row.names=F)
+############
+
+if (mythresh<0.99){
+
+myct = cutree(myhc, h=mythresh)
 
 myid = read.table("aac.id", head=F,sep="\\t")
 
@@ -175,6 +207,8 @@ writegroup = function(group,name){
 bysize = names(sort(table(jj[,2]),decr=T))
 for (ii in 1:length(bysize)){
   writegroup(bysize[ii],ii)
+}
+
 }
 
 """

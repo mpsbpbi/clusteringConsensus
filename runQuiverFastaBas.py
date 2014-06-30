@@ -80,8 +80,8 @@ export PATH=%s
                         "--nproc=%s \\" % options["nproc"],
                         "--seed=1234 \\",
                         "--minLength 2048 \\",
-                        "--minAccuracy 50 \\",
-                        "--maxDivergence 50 \\",
+                        "--minAccuracy 10 \\",
+                        "--maxDivergence 90 \\",
                         "--noSplitSubreads \\",
                         "--maxHits 1",
                         "\n"]
@@ -125,11 +125,12 @@ export PATH=%s
 -r %s \
 -o %s.gff -o %s.consensus.fasta -o %s.consensus.fastq \
 > %s.vc.out 2> %s.vc.err
+samtools faidx %s.consensus.fasta
 """
 
         # --parameter=AllQVsModel.C2
 
-        cmd = cmd+template % (outh5, options["ref"], outvar, outvar, outvar, outvar, outvar)
+        cmd = cmd+template % (outh5, options["ref"], outvar, outvar, outvar, outvar, outvar, outvar)
 
         fp = open("%s/var.cmd" % options["runDir"],"w")
         fp.write("%s\n" % cmd)

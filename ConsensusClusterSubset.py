@@ -121,7 +121,8 @@ def ConsensusClusterSubset(*argv, **options):
         sys.stderr.write("\n")
 
     ################################
-    # all done file
+    # summary and all done file
+    runit("cd %s; resultsSummary.py > resultsSummary.html" % options["runDir"])
     runit("touch %s/all.done" % options["runDir"])
 
 ################################

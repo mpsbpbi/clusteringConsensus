@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# NOTE: this is depracated in 2.3: TODO: replace with pbcore.io
+
 from pbpy.io.cmph5 import CmpH5 # this was from pbpy.io import CmpH5IO
 import sys
 
