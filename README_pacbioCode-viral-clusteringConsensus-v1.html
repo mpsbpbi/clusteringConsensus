@@ -109,3 +109,11 @@ git tag -a v1.02-pbalign -m "version using pbalign"
 git push origin v1.02-pbalign
 
 git push --tags
+
+================================
+git reflog show
+git checkout 42bf521bfadf53779a065053cd6edce6deacddc7
+git checkout -b fixdetachedhead
+
+git checkout master
+git mrege fixdetachedhead
