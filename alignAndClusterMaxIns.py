@@ -130,7 +130,7 @@ export PATH=%s
     sys.stderr.write("got aac.msaToDist\n")
 
     #### Compute the hclust and plot it in R
-    if not os.path.exists("%s/aac.hclust.png" % options["runDir"]) or not os.path.exists("%s/.RData" % options["runDir"]):
+    if not os.path.exists("%s/Rplots.pdf" % options["runDir"]) or not os.path.exists("%s/.RData" % options["runDir"]):
         Rscript= """
 inputs = scan("Rscript.input",what="character")
 # num objects
@@ -151,7 +151,8 @@ for (ii in 1:num){
   mydist[ii,ii]=0.0
 }
 myhc = hclust(as.dist(mydist))
-png(inputs[3],width=800,height=800,type="cairo")
+pdf(inputs[3])
+#png(inputs[3],width=800,height=800,type="cairo")
 plot(myhc,main="")
 #abline(h=0.6,col="red")
 dev.off()
@@ -223,7 +224,7 @@ for (ii in 1:length(bysize)){
         fp = open("%s/Rscript.input" % options["runDir"],"w")
         fp.write("%s\n" % myrow)
         fp.write("aac.msaToDist\n")
-        fp.write("aac.hclust.png\n")
+        fp.write("Rplots.pdf\n")
         fp.close()
         
         cmd = "cd %s; R CMD BATCH Rscript.R" % (options["runDir"])
@@ -233,7 +234,7 @@ for (ii in 1:length(bysize)){
         fp.close()
         qsubWait( options["runDir"], "Rjob.sh" )
 
-    sys.stderr.write("got aac.hclust.png\n")
+    sys.stderr.write("got Rplots.pdf\n")
 
 if __name__ == "__main__":
     parser = OptionParser("alignAndCluster")
