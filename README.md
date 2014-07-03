@@ -1,28 +1,41 @@
-clusteringConsensus
-===================
+clusteringConsensus (CluCon)
+============================
 
-goal
+Goal
 ----
 
-Provide calling code to run clustering consensus on PacBio sequencing
-from mixed populations.
+Your biological sample contains a number of distinct genomes and you
+want to know the number of distinct genomes, their exact identities,
+and their relative abundances.
 
-methods
+CluCon is analysis code that clusters reads and estimates consensus
+from PacBio sequencing data from mixed populations to answer these
+questions. It is designed for mixed genomes (or genome regions) where
+PacBio reads can cover the entire genome.
+
+Example
 -------
 
-This is a simple pull of my calling scripts into github so they can be
-shared and tracked.
+Here is an example data analysis run that examines a mixture of
+near-full length HIV genomes (9kb long): [README_HIV-three-clones.html]("https://s3.amazonaws.com/files.pacb.com/Users/mbrown/HIV-three-clones/README_HIV-three-clones.html")
 
-After installation here is the calling sequence:
+PacBio reads can sequence entire HIV genomes from single molecules as
+single, continuous 9kb+ reads. Given a simple containing an unknown
+number of HIV genomes, one PacBio sequencing chip in three hours, and
+the CluCon software, we were able to determine that the sample
+contained three full-length HIV species in a (60%/20%/20%) mixture and
+got the exact genomic identity of all three species.
 
-    export SEYMOUR_HOME=/opt/smrtanalysis
-    source /opt/smrtanalysis/etc/setup.sh
-    export PATH=/home/mbrown/Desktop/smrtanalysis/code:$PATH
-    time ConsensusClusterSubset.py \
-    --runDir testit \
-    --fasta 2450417-0003.fasta \
-    --ref HIVemory.fasta \
-    --spanThreshold=6400 \
+The calling sequence is simple taking the sequence data and a generic
+reference to seed the process:
+
+    ConsensusClusterSubset.py \
+    --nproc=1 \
+    --runDir=bound-clucon-dna622 \
+    --fasta=raw-niaid-dna622.fasta \
+    --ref=hiv_hxb2_whole_genome-covered.fasta \
+    --spanThreshold=99.0% \
     --entropyThreshold=1.0 \
-    --basfofn 2450417-0003.bas.fofn \
-    > 2450417-0003.workflow.output 2>&1 &
+    --basfofn=dna622.baxh5.fofn
+
+----
