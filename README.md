@@ -11,7 +11,7 @@ and their relative abundances.
 CluCon is analysis code that clusters reads and estimates consensus
 from PacBio sequencing data from mixed populations to answer these
 questions. It is designed for mixed genomes (or genome regions) where
-PacBio reads can cover the entire genome.
+long PacBio reads can cover the entire genome.
 
 Example
 -------
@@ -19,8 +19,8 @@ Example
 Here is an example data analysis run that examines a mixture of
 near-full length HIV genomes (9kb long): [README_HIV-three-clones.html](https://s3.amazonaws.com/files.pacb.com/Users/mbrown/HIV-three-clones/README_HIV-three-clones.html)
 
-PacBio reads can sequence entire HIV genomes from single molecules as
-single, continuous 9kb+ reads. Given a simple containing an unknown
+PacBio can sequence entire HIV genomes from single molecules as
+single, continuous 9kb+ reads. Given a sample containing an unknown
 number of HIV genomes, one PacBio sequencing chip in three hours, and
 the CluCon software, we were able to determine that the sample
 contained three full-length HIV species in a (60%/20%/20%) mixture and
