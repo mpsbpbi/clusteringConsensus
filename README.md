@@ -17,7 +17,7 @@ Example
 -------
 
 Here is an example data analysis run that examines a mixture of
-near-full length HIV genomes (9kb long): [README_HIV-three-clones.html]("https://s3.amazonaws.com/files.pacb.com/Users/mbrown/HIV-three-clones/README_HIV-three-clones.html")
+near-full length HIV genomes (9kb long): [README_HIV-three-clones.html](https://s3.amazonaws.com/files.pacb.com/Users/mbrown/HIV-three-clones/README_HIV-three-clones.html)
 
 PacBio reads can sequence entire HIV genomes from single molecules as
 single, continuous 9kb+ reads. Given a simple containing an unknown
