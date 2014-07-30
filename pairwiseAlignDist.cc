@@ -27,18 +27,18 @@ int main (int argc, const char** argv) {
   char *buffer;
 
   ifstream is;
-  is.open (argv[1], ios::binary );
+  is.open(argv[1], ios::binary );
 
   // get length of file:
-  is.seekg (0, ios::end);
+  is.seekg(0, ios::end);
   length = is.tellg();
-  is.seekg (0, ios::beg);
+  is.seekg(0, ios::beg);
 
   // allocate memory:
   buffer = new char [length];
 
   // read data as a block: TODO mmap it
-  is.read (buffer,length);
+  is.read(buffer,length);
   is.close();
 
   int numrow = atoi(argv[2]);
@@ -127,6 +127,11 @@ int main (int argc, const char** argv) {
     double sumCounts;
     double entropy;
 
+    // output ranking of all positions so I can compute ROC of feature
+    // selection
+    ofstream featureRanking("distjob.ranking");
+    featureRanking << "column\tentropy\tnumbases\tfreq\taccepted" << endl;
+
     int doMatchOnly = 0; // Discard all insert columns in the alignment and only look at match.
 
     for (int cc=0; cc<(numcol-1); cc++){
@@ -166,13 +171,17 @@ int main (int argc, const char** argv) {
       int elements = sizeof(freqs)/sizeof(freqs[0]);
       sort(freqs, freqs+elements);
       
-      if (numbases>threshold){
-	if (entropy>ethreshold){      
-	  // if (freqs[3] > 0.08){ // 2nd minor frequency > XX%, rather than entropy
-	  numAboveThreshold++;
-	  cerr << "cc " << cc << " numbases " << numbases << " entropy " << entropy << " freqs[4] " << freqs[4] << endl;
-	  goodColumns.push_back(cc);
-	}
+      // output to ranking
+      featureRanking << cc << "\t" << entropy << "\t" << numbases << "\t" << freqs[4];
+
+      if ( (numbases>threshold) && (entropy>ethreshold) ){
+	// if (freqs[3] > 0.08){ // 2nd minor frequency > XX%, rather than entropy
+	numAboveThreshold++;
+	cerr << "cc " << cc << " entropy " << entropy << " numbases " << numbases << " freqs[4] " << freqs[4] << endl;
+	goodColumns.push_back(cc);
+	featureRanking << "\t1" << endl;
+      } else {
+	featureRanking << "\t0" << endl;
       }
     }
 
