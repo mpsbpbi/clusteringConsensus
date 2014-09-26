@@ -67,7 +67,6 @@ def ConsensusClusterSubset(*argv, **options):
 
         inputfasta = "%s/%s.fasta" % (options["runDir"], os.path.basename(options["subids"]))
         if not os.path.exists(inputfasta):
-            # cmd = "export SEYMOUR_HOME=%s; . $SEYMOUR_HOME/etc/setup.sh; fastafetch --fasta %s --index %s -F -q %s > %s" % (os.environ['SEYMOUR_HOME'],options["fasta"],indexfile,options["subids"],inputfasta)
             cmd = "fastasub.py %s %s > %s" % (options["fasta"],options["subids"],inputfasta)
             runit(cmd)
     else:
@@ -95,10 +94,12 @@ def ConsensusClusterSubset(*argv, **options):
             cmd = "cp %s %s/quiverResult.consensus.fasta; touch %s/quiver.done" % (options["ref"], options["runDir"], options["runDir"])
             runit(cmd)
 
+    sys.stderr.write("got quiver.done\n")
+
     ################################
-    # cluster the reads and break into groups
-    # this puts computation onto cluster, so just run locally
-    if not os.path.exists("%s/aac.hclust.png" % options["runDir"]):
+    # align reads to quiver consensus, take only those spanning, produce MSA
+    # TODO:
+    if not os.path.exists("%s/aac.msa" % options["runDir"]):
         # check to see of spanThreshold is a percentage %
         if options["spanThreshold"][-1]== "%":
             dat = runit("fastalength %s/quiverResult.consensus.fasta" % options["runDir"])
@@ -107,18 +108,82 @@ def ConsensusClusterSubset(*argv, **options):
             newSpanThreshold = int(frac*reflength+0.5)
             sys.stderr.write("newSpanThreshold= %d = %d*%f\n" % (newSpanThreshold,reflength,frac))
             options["spanThreshold"] = str(newSpanThreshold)
+            # TODO: write updated options.items
 
-        cmd = "null"
         if options["CCS"]=="0":
-            cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+            inputseq = options["basfofn"]
         else:
-            cmd = "alignAndClusterMaxIns.py --runDir %s --limsID %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --entropyThreshold %s --nproc %s --doOverlap %s --CCS %s" % (options["runDir"],inputfasta,options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+            inputseq = inputfasta
+
+        cmd = "msaAlignSpanning.py --runDir %s --inputseq %s --ref %s --spanThreshold %s --nproc %s" % (options["runDir"],inputseq,options["ref"],options["spanThreshold"],options["nproc"])
 
         dat = runit(cmd)
         sys.stderr.write(dat[0])
         sys.stderr.write("\n")
         sys.stderr.write(dat[1])
         sys.stderr.write("\n")
+
+    sys.stderr.write("got aac.msa\n")
+
+    ################################
+    # identify variant positions using either entropy or basis chisq
+    # TODO:
+    if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
+
+        if not options.entropyThreshold:
+            # compute using chisq
+            cmd = "variantPositions.py %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+
+        if not options.chisqThreshold:
+            # compute using entropy
+
+            # get the size of the msa from the aac.msa.info file
+            dat = runit("cat %s/aac.msa.info" % options["runDir"]).strip()
+            ff = dat.split(" ")
+            mycol = ff[14]
+            myrow = ff[16]
+            myrowhalf = max(32,int(myrow)/100) # Require 1/100 to be non-empty with minimum of 32
+            if options["doOverlap"]=="1":
+                cmd = "cd %s; entropyVariants aac.msa %s %s %d %s %d overlap > entropyVariants.stdout 2>entropyVariants.stderr" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
+            else:
+                cmd = "cd %s; entropyVariants aac.msa %s %s %d %s %d > entropyVariants.stdout 2>entropyVariants.stderr" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
+
+            cmdFile = "%s/distjob.sh" % options["runDir"]
+            fp = open(cmdFile,"w")
+            fp.write("%s\n" % cmd)
+            fp.close()
+            qsubWait( options["runDir"], "distjob.sh" )
+
+    sys.stderr.write("got distjob.usecols\n")
+
+    ################################
+
+    # cluster / phase the reads based on the identified variant
+    # positions using either complete linkage single base
+    # agreeFraction, HP-region basis clustering, or HP-region basis
+    # phasing. Yields either sets of stratified IDs or possibly phased
+    # genomes if clustering not clear
+    # TODO:
+    if not os.path.exists("%s/cluster.done" % options["runDir"]):
+
+        if options["clusterMethod"]=="agreeFracCluster":
+            cmd = "agreeFracCluster.py %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+
+        cmd = "touch %s/cluster.done" % (options["ref"])
+
+    sys.stderr.write("got cluster.done\n")
 
     ################################
     # summary and all done file
@@ -134,7 +199,9 @@ if __name__ == "__main__":
     parser.add_option("--subids", type="string", dest="subids", help="a file of newline separated read ids to use")
     parser.add_option("--ref", type="string", dest="ref", help="the generic reference. HIVemory.fasta")
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="how much of the reference must be spanned in order to keep read =6400 or percentage of ref=99.2%")
-    parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="for clustering the minimum entropy needed in a column to be kept =1.0")
+    parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="exclusive from chisqThreshold. for clustering the minimum entropy needed in a column to be kept =1.0")
+    parser.add_option("--chisqThreshold", type="string", dest="chisqThreshold", help="exclusive from entropyThreshold. for variant positions the maximum p-value to be kept =1.0e-100")
+    parser.add_option("--clusterMethod", type="string", dest="clusterMethod", help="for clustering/phasing (agreeFracCluster, basisCluster, basisPhase) =basisCluster")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
     parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
