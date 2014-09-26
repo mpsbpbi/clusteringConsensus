@@ -177,13 +177,14 @@ int main (int argc, const char** argv) {
       if ( (numbases>threshold) && (entropy>ethreshold) ){
 	// if (freqs[3] > 0.08){ // 2nd minor frequency > XX%, rather than entropy
 	numAboveThreshold++;
-	cerr << "cc " << cc << " entropy " << entropy << " numbases " << numbases << " freqs[4] " << freqs[4] << endl;
+	cerr << "cc " << cc << " numbases " << numbases << " entropy " << entropy << " freqs[4] " << freqs[4] << endl;
 	goodColumns.push_back(cc);
 	featureRanking << "\t1" << endl;
       } else {
 	featureRanking << "\t0" << endl;
       }
     }
+    featureRanking.close();
 
     ////////
     // remove all columns that are homopolymer positions in the
