@@ -37,6 +37,16 @@ def runit( cmd ):
     return subprocess.Popen( cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash').communicate()
 
 ################################
+# fakes running qsub so it's not needed
+def qsubWait( runDir, cmdFile ):
+
+    cmd = "cd %s; chmod 777 %s" % (runDir, cmdFile)
+    runit(cmd)
+    cmd = "source %s/%s" % (runDir,cmdFile)
+    print cmd
+    runit(cmd)
+
+################################
 def ConsensusClusterSubset(*argv, **options):
 
     options["runDir"] = os.path.abspath(options["runDir"])
@@ -115,7 +125,7 @@ def ConsensusClusterSubset(*argv, **options):
         else:
             inputseq = inputfasta
 
-        cmd = "msaAlignSpanning.py --runDir %s --inputseq %s --ref %s --spanThreshold %s --nproc %s" % (options["runDir"],inputseq,options["ref"],options["spanThreshold"],options["nproc"])
+        cmd = "msaAlignSpanning.py --runDir %s --inputseq %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --nproc %s" % (options["runDir"],inputseq,options["runDir"],options["spanThreshold"],options["nproc"])
 
         dat = runit(cmd)
         sys.stderr.write(dat[0])
@@ -130,7 +140,7 @@ def ConsensusClusterSubset(*argv, **options):
     # TODO:
     if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
 
-        if not options.entropyThreshold:
+        if options["chisqThreshold"] != None:
             # compute using chisq
             cmd = "variantPositions.py %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
 
@@ -140,15 +150,16 @@ def ConsensusClusterSubset(*argv, **options):
             sys.stderr.write(dat[1])
             sys.stderr.write("\n")
 
-        if not options.chisqThreshold:
+        if options["entropyThreshold"] != None:
             # compute using entropy
 
             # get the size of the msa from the aac.msa.info file
-            dat = runit("cat %s/aac.msa.info" % options["runDir"]).strip()
+            dat = runit("cat %s/aac.msa.info" % options["runDir"])[0].strip()
             ff = dat.split(" ")
             mycol = ff[14]
             myrow = ff[16]
             myrowhalf = max(32,int(myrow)/100) # Require 1/100 to be non-empty with minimum of 32
+
             if options["doOverlap"]=="1":
                 cmd = "cd %s; entropyVariants aac.msa %s %s %d %s %d overlap > entropyVariants.stdout 2>entropyVariants.stderr" % (options["runDir"], myrow, mycol, myrowhalf, options["entropyThreshold"], 4) # 4 is the maxInsert size to identify match columns
             else:
@@ -173,7 +184,7 @@ def ConsensusClusterSubset(*argv, **options):
     if not os.path.exists("%s/cluster.done" % options["runDir"]):
 
         if options["clusterMethod"]=="agreeFracCluster":
-            cmd = "agreeFracCluster.py %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
+            cmd = "agreeFracCluster.py --runDir %s --entropyThreshold %s --doOverlap %s" % (options["runDir"],options["entropyThreshold"],options["doOverlap"])
 
             dat = runit(cmd)
             sys.stderr.write(dat[0])
