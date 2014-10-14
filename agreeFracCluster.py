@@ -108,7 +108,7 @@ thresholdGivenPositions=function(numPos){
   return(ur$root)
 }
 
-numPos = as.numeric(scan(pipe("cat distjob.usecols | wc -l")))
+numPos = as.numeric(scan(pipe("cat distjob.usecols | wc -w")))
 totalPos = as.numeric(scan(pipe("cat aac.col | wc -l")))
 numObj = as.numeric(scan(pipe("cat aac.id | wc -l")))
 

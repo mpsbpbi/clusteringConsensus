@@ -91,6 +91,12 @@ int main (int argc, const char** argv) {
     exit(1);
   }
 
+  cerr << "filteredColumns.size()=\t"  << filteredColumns.size() << endl;
+  for (int i =0; i < filteredColumns.size(); i++){
+    cerr << filteredColumns[i] << " ";
+  }
+  cerr << endl;
+
   ////////////////////////////////
   // for all pairs of sequences, compute distances on all filteredColumns
   // All delete mismatches  count as matches.

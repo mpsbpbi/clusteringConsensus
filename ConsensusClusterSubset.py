@@ -108,7 +108,6 @@ def ConsensusClusterSubset(*argv, **options):
 
     ################################
     # align reads to quiver consensus, take only those spanning, produce MSA
-    # TODO:
     if not os.path.exists("%s/aac.msa" % options["runDir"]):
         # check to see of spanThreshold is a percentage %
         if options["spanThreshold"][-1]== "%":
@@ -137,19 +136,28 @@ def ConsensusClusterSubset(*argv, **options):
 
     ################################
     # identify variant positions using either entropy or basis chisq
-    # TODO:
     if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
 
+        ########
         if options["chisqThreshold"] != None:
             # compute using chisq
-            cmd = "variantPositions.py %s" % (options["runDir"],options["basfofn"],options["runDir"],options["spanThreshold"],options["entropyThreshold"],options["nproc"],options["doOverlap"],options["CCS"])
-
+            
+            ## get the data into HP-region count form
+            cmd = "cd %s; msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts" % (options["runDir"])
             dat = runit(cmd)
             sys.stderr.write(dat[0])
             sys.stderr.write("\n")
             sys.stderr.write(dat[1])
             sys.stderr.write("\n")
 
+            cmd = "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; cat msaobs-hp-set.counts | minorMsaObs.py %s" % (options["runDir"], options["chisqThreshold"])
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+
+        ########
         if options["entropyThreshold"] != None:
             # compute using entropy
 
@@ -183,9 +191,28 @@ def ConsensusClusterSubset(*argv, **options):
     # TODO:
     if not os.path.exists("%s/cluster.done" % options["runDir"]):
 
+        ################################
         if options["clusterMethod"]=="agreeFracCluster":
             cmd = "agreeFracCluster.py --runDir %s --entropyThreshold %s --doOverlap %s" % (options["runDir"],options["entropyThreshold"],options["doOverlap"])
 
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+
+        ################################
+        if options["clusterMethod"]=="basisPhase":
+
+            # first get compound variant counts
+            cmd = "cd %s; msaobs-hp-set.py aac.msa distjob.usecols > basisPhase-msaobs-hp-set.counts" % (options["runDir"])
+            dat = runit(cmd)
+            sys.stderr.write(dat[0])
+            sys.stderr.write("\n")
+            sys.stderr.write(dat[1])
+            sys.stderr.write("\n")
+
+            cmd = "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; basisPhase.py basisPhase-msaobs-hp-set.counts %s > basisPhase.output" % (options["runDir"], options["basisPhaseThreshold"])
             dat = runit(cmd)
             sys.stderr.write(dat[0])
             sys.stderr.write("\n")
@@ -213,6 +240,7 @@ if __name__ == "__main__":
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="exclusive from chisqThreshold. for clustering the minimum entropy needed in a column to be kept =1.0")
     parser.add_option("--chisqThreshold", type="string", dest="chisqThreshold", help="exclusive from entropyThreshold. for variant positions the maximum p-value to be kept =1.0e-100")
     parser.add_option("--clusterMethod", type="string", dest="clusterMethod", help="for clustering/phasing (agreeFracCluster, basisCluster, basisPhase) =basisCluster")
+    parser.add_option("--basisPhaseThreshold", type="string", dest="basisPhaseThreshold", help="for basisPhase threshold to add new haplotype = 1.0E-10")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
     parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
