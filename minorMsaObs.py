@@ -77,7 +77,7 @@ def scoreIt(dat):
 
     expected = np.round(expectedProb * sum(observed))
 
-    if False:
+    if True:
         print "id observed expected expectedProb over", sum(observed)
         for ii in range(len(aos)):
             print aos[ii], observed[ii], expected[ii], expectedProb[ii]

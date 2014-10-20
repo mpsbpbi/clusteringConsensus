@@ -5,6 +5,14 @@ From /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/NIAID-closehiv/msaobs-hp-set.p
 
 import sys
 
+doCollapse=False
+nosanitize=False
+for ii in range(3,len(sys.argv)):
+    if sys.argv[ii]=="collapse":
+        doCollapse = True
+    if sys.argv[ii]=="nosanitize":
+        nosanitize = True
+
 # the input MSA
 dat = open(sys.argv[1]).read().splitlines()
 
@@ -51,16 +59,23 @@ while (this<end):
     next=this+5
 
 sys.stderr.write("#ranges=%s\n" %  repr(ranges))
-# collapse hp regions if overlapping
-newranges= [ranges[0]]
-for ii in range(1,len(ranges)):
-    if newranges[-1][1]>=ranges[ii][0]:
-        newranges[-1]= (newranges[-1][0],ranges[ii][1])
-        sys.stderr.write("#collapse %d = %d\n" % ( (ii),len(newranges)-1 ))
-    else:
-        newranges.append(ranges[ii])
-sys.stderr.write("#newranges=%s\n" %  repr(newranges))
-ranges=newranges
+doCollapseMap = {}
+for ii in range(len(ranges)):
+    doCollapseMap[ii]=[ranges[ii]]
+if doCollapse:
+    doCollapseMap = {0: [ranges[0]]}
+    # collapse hp regions if overlapping, assumes sorted
+    newranges= [ranges[0]]
+    for ii in range(1,len(ranges)):
+        if newranges[-1][1]>=ranges[ii][0]:
+            newranges[-1]= (newranges[-1][0],ranges[ii][1])
+            sys.stderr.write("#collapse %d = %d\n" % ( (ii),len(newranges)-1 ))
+            doCollapseMap[len(newranges)-1].append(ranges[ii])
+        else:
+            newranges.append(ranges[ii])
+            doCollapseMap[len(newranges)-1] = [ranges[ii]]
+    sys.stderr.write("#newranges=%s\n" %  repr(newranges))
+    ranges=newranges
 
 ################################
 # collect the data
@@ -96,21 +111,29 @@ else:
 
     for ii in range(len(dat)):
         ll = dat[ii] 
-        for rr in ranges:
-            rangelen = rr[1]/5-rr[0]/5+1
+        for rrii in range(len(ranges)):
             if ii==0:
                 # reference
-                hphaplo[ii] += "%d-%d-%s.%s.%d.%s+" % (rr[0],rr[1],ref[rr[0]], ref[rr[0]+5], rangelen-2, ref[rr[1]])
+                tmp=[]
+                for rr in doCollapseMap[rrii]:
+                    rangelen = rr[1]/5-rr[0]/5+1
+                    tmp.append("%d-%d-%s.%s.%d.%s" % (rr[0],rr[1],ref[rr[0]], ref[rr[0]+5], rangelen-2, ref[rr[1]]))
+                hphaplo[ii] += "%s+" % "~".join(tmp)
             else:
                 # old: everything including ends
                 #hphaplo[ii]+= "%s+" % ll[rr[0]:(rr[1]+1)]
 
                 # only bases without ends
-                key = "%s+" % ll[ (rr[0]+1) : (rr[1]+1-1) ]
-                key=key.upper()
-                key=key.replace("-","")
-                key=key.replace(".","")
-                hphaplo[ii]+= key
+                rr=ranges[rrii]
+                if not nosanitize:
+                    key = "%s+" % ll[ (rr[0]+1) : (rr[1]+1-1) ]
+                    key=key.upper()
+                    key=key.replace("-","")
+                    key=key.replace(".","")
+                    hphaplo[ii]+= key
+                else:
+                    key = "%s+" % ll[ (rr[0]) : (rr[1]+1) ]
+                    hphaplo[ii]+= key
 
     # count up unique occur
     store = {}
