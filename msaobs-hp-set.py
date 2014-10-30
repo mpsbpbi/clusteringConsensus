@@ -5,13 +5,19 @@ From /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/NIAID-closehiv/msaobs-hp-set.p
 
 import sys
 
-doCollapse=False
-nosanitize=False
+docollapse=False
+dosanitize=False
+dosurround=False
+doaddHPContext=False
 for ii in range(3,len(sys.argv)):
     if sys.argv[ii]=="collapse":
-        doCollapse = True
-    if sys.argv[ii]=="nosanitize":
-        nosanitize = True
+        docollapse = True
+    if sys.argv[ii]=="sanitize":
+        dosanitize = True
+    if sys.argv[ii]=="surround":
+        dosurround = True
+    if sys.argv[ii]=="addHPContext":
+        doaddHPContext = True
 
 # the input MSA
 dat = open(sys.argv[1]).read().splitlines()
@@ -24,10 +30,15 @@ if sys.argv[2] != "all":
         # print "## looking for msapos", int(ll)
         msapos[int(ll)] = 1
 
+    if len(msapos)>300:
+        print "ERROR too many columns %d > 300" % len(msapos)
+        sys.exit(1)
+
 ################################
 # find x+y^n+z ranges
 ref = dat[0]
-ranges=[]
+allranges=[]
+selected=[]
 
 # make sure begin and end aren't HPs
 begin=5
@@ -45,35 +56,54 @@ while (this<end):
         this+=5
         next+=5
     rangeend=next
+    allranges.append( (rangebegin,rangeend) )
+    selected.append(0)
+
     if sys.argv[2] == "all":
-        ranges.append( (rangebegin,rangeend) )
+        selected[-1] = 1
     else:
         # cycle through inefficiently to see if range contains desired position
         for pp in range(rangebegin+1,rangeend):
             if msapos.get(pp,0)==1:
-                ranges.append( (rangebegin,rangeend) )
+                selected[-1] = 1
                 #print "## hp range desired", rangebegin, rangeend
 
     rangebegin=this
     this=rangebegin+5
     next=this+5
 
+# extend ranges to every selected
+if doaddHPContext:
+    if not sys.argv[2] == "all":
+        newselected = selected[:]
+        for ii in range(len(selected)):
+            if selected[ii] == 1:
+                newselected[ii]=1
+                newselected[min((ii+1),(len(selected)-1))]=1
+        selected=newselected
+
+# fill in selection
+ranges=[]
+for ii in range(len(selected)):
+    if selected[ii]==1:
+        ranges.append( allranges[ii] )
+
 sys.stderr.write("#ranges=%s\n" %  repr(ranges))
-doCollapseMap = {}
+docollapseMap = {}
 for ii in range(len(ranges)):
-    doCollapseMap[ii]=[ranges[ii]]
-if doCollapse:
-    doCollapseMap = {0: [ranges[0]]}
+    docollapseMap[ii]=[ranges[ii]]
+if docollapse:
+    docollapseMap = {0: [ranges[0]]}
     # collapse hp regions if overlapping, assumes sorted
     newranges= [ranges[0]]
     for ii in range(1,len(ranges)):
         if newranges[-1][1]>=ranges[ii][0]:
             newranges[-1]= (newranges[-1][0],ranges[ii][1])
             sys.stderr.write("#collapse %d = %d\n" % ( (ii),len(newranges)-1 ))
-            doCollapseMap[len(newranges)-1].append(ranges[ii])
+            docollapseMap[len(newranges)-1].append(ranges[ii])
         else:
             newranges.append(ranges[ii])
-            doCollapseMap[len(newranges)-1] = [ranges[ii]]
+            docollapseMap[len(newranges)-1] = [ranges[ii]]
     sys.stderr.write("#newranges=%s\n" %  repr(newranges))
     ranges=newranges
 
@@ -86,14 +116,12 @@ if sys.argv[2]=="all":
     # look at all HP ranges
     for rr in ranges:
         rangelen = rr[1]/5-rr[0]/5+1
-        truth = "%s.%s.%d.%s" % (ref[rr[0]], ref[rr[0]+5], rangelen-2, ref[rr[1]])
-
         store = {}
-        res = "%d\t%d\t%s\t" % (rr[0],rr[1],truth)
+        res = "%d-%d-%s.%s.%d.%s+\t" % (rr[0],rr[1],ref[rr[0]], ref[rr[0]+5], rangelen-2, ref[rr[1]])
 
         for ii in range(1,len(dat)):
             ll = dat[ii] 
-            region = ll[rr[0]:(rr[1]+1)]
+            region = ll[rr[0]:(rr[1]+1)]+"+"
             store[region] = store.get(region,0)+1
 
         ss = sorted(store.items(), key=lambda x: x[1], reverse=True)
@@ -115,25 +143,23 @@ else:
             if ii==0:
                 # reference
                 tmp=[]
-                for rr in doCollapseMap[rrii]:
+                for rr in docollapseMap[rrii]:
                     rangelen = rr[1]/5-rr[0]/5+1
                     tmp.append("%d-%d-%s.%s.%d.%s" % (rr[0],rr[1],ref[rr[0]], ref[rr[0]+5], rangelen-2, ref[rr[1]]))
                 hphaplo[ii] += "%s+" % "~".join(tmp)
             else:
-                # old: everything including ends
-                #hphaplo[ii]+= "%s+" % ll[rr[0]:(rr[1]+1)]
-
-                # only bases without ends
                 rr=ranges[rrii]
-                if not nosanitize:
+                if dosurround:
+                    key = "%s+" % ll[ (rr[0]) : (rr[1]+1) ]
+                else:
                     key = "%s+" % ll[ (rr[0]+1) : (rr[1]+1-1) ]
+
+                if dosanitize:
                     key=key.upper()
                     key=key.replace("-","")
                     key=key.replace(".","")
-                    hphaplo[ii]+= key
-                else:
-                    key = "%s+" % ll[ (rr[0]) : (rr[1]+1) ]
-                    hphaplo[ii]+= key
+                    
+                hphaplo[ii]+= key
 
     # count up unique occur
     store = {}
@@ -143,6 +169,7 @@ else:
     ss = sorted(store.items(), key=lambda x: x[1], reverse=True)
     out = []
     for sss in ss:
+        if " " in sss[0]: continue # kill any incomplete
         out.append("'%s': %d" % (sss))
 
     hpdat.append("%s\t{ %s };" % (hphaplo[0], ",".join(out)))

@@ -124,7 +124,7 @@ def ConsensusClusterSubset(*argv, **options):
         else:
             inputseq = inputfasta
 
-        cmd = "msaAlignSpanning.py --runDir %s --inputseq %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --nproc %s" % (options["runDir"],inputseq,options["runDir"],options["spanThreshold"],options["nproc"])
+        cmd = "msaAlignSpanning.py --runDir %s --inputseq %s --ref %s/quiverResult.consensus.fasta --spanThreshold %s --nproc %s --useQuality %s" % (options["runDir"],inputseq,options["runDir"],options["spanThreshold"],options["nproc"],options["useQuality"])
 
         dat = runit(cmd)
         sys.stderr.write(dat[0])
@@ -142,20 +142,19 @@ def ConsensusClusterSubset(*argv, **options):
         if options["chisqThreshold"] != None:
             # compute using chisq
             
+            cmd = "echo basisVar\n"
             ## get the data into HP-region count form
-            cmd = "cd %s; msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts" % (options["runDir"])
-            dat = runit(cmd)
-            sys.stderr.write(dat[0])
-            sys.stderr.write("\n")
-            sys.stderr.write(dat[1])
-            sys.stderr.write("\n")
+            if not os.path.exists("%s/msaobs-hp-set.counts" % options["runDir"]):
+                cmd = cmd + "cd %s; msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts\n" % (options["runDir"])
 
-            cmd = "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; cat msaobs-hp-set.counts | minorMsaObs.py %s" % (options["runDir"], options["chisqThreshold"])
-            dat = runit(cmd)
-            sys.stderr.write(dat[0])
-            sys.stderr.write("\n")
-            sys.stderr.write(dat[1])
-            sys.stderr.write("\n")
+            # use basis to find minor variants across all
+            if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
+                cmd = cmd + "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; cat msaobs-hp-set.counts | minorMsaObs.py %s %s %s\n" % (options["runDir"], options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
+
+            fp = open("%s/basisVar.cmd" % options["runDir"],"w")
+            fp.write("%s\n" % cmd)
+            fp.close()
+            qsubWait( options["runDir"], "basisVar.cmd" )
 
         ########
         if options["entropyThreshold"] != None:
@@ -204,20 +203,19 @@ def ConsensusClusterSubset(*argv, **options):
         ################################
         if options["clusterMethod"]=="basisPhase":
 
+            cmd = "echo basisPhase\n"
             # first get compound variant counts
-            cmd = "cd %s; msaobs-hp-set.py aac.msa distjob.usecols > basisPhase-msaobs-hp-set.counts" % (options["runDir"])
-            dat = runit(cmd)
-            sys.stderr.write(dat[0])
-            sys.stderr.write("\n")
-            sys.stderr.write(dat[1])
-            sys.stderr.write("\n")
+            if not os.path.exists("%s/basisPhase-msaobs-hp-set.counts" % options["runDir"]):
+                cmd = cmd+ "cd %s; msaobs-hp-set.py aac.msa distjob.usecols collapse sanitize %s %s > basisPhase-msaobs-hp-set.counts\n" % (options["runDir"], options["surround"], options["addHPContext"])
 
-            cmd = "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; basisPhase.py basisPhase-msaobs-hp-set.counts %s > basisPhase.output" % (options["runDir"], options["basisPhaseThreshold"])
-            dat = runit(cmd)
-            sys.stderr.write(dat[0])
-            sys.stderr.write("\n")
-            sys.stderr.write(dat[1])
-            sys.stderr.write("\n")
+            # do the phasing
+            if not os.path.exists("%s/basisPhase.output" % options["runDir"]):
+                cmd = cmd+"cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; basisPhase.py basisPhase-msaobs-hp-set.counts %s > basisPhase.output\n" % (options["runDir"], options["basisPhaseThreshold"])
+
+            fp = open("%s/basisPhase.cmd" % options["runDir"],"w")
+            fp.write("%s\n" % cmd)
+            fp.close()
+            qsubWait( options["runDir"], "basisPhase.cmd" )
 
         cmd = "touch %s/cluster.done" % (options["ref"])
 
@@ -238,13 +236,17 @@ if __name__ == "__main__":
     parser.add_option("--ref", type="string", dest="ref", help="the generic reference. HIVemory.fasta")
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="how much of the reference must be spanned in order to keep read =6400 or percentage of ref=99.2%")
     parser.add_option("--entropyThreshold", type="string", dest="entropyThreshold", help="exclusive from chisqThreshold. for clustering the minimum entropy needed in a column to be kept =1.0")
-    parser.add_option("--chisqThreshold", type="string", dest="chisqThreshold", help="exclusive from entropyThreshold. for variant positions the maximum p-value to be kept =1.0e-100")
+    parser.add_option("--chisqThreshold", type="string", dest="chisqThreshold", help="exclusive from entropyThreshold. for variant positions the maximum p-value to be kept for chi stat=1.0e-100")
+    parser.add_option("--fisherlThreshold", type="string", dest="fisherlThreshold", help="exclusive from entropyThreshold. for variant positions the maximum p-value to be kept for fisherl stat=1.0e-100")
+    parser.add_option("--addHPContext", type="string", dest="addHPContext", help="for selected HP context add the HP context downstream. 'addHPConext'=yes ''=no. ''")
     parser.add_option("--clusterMethod", type="string", dest="clusterMethod", help="for clustering/phasing (agreeFracCluster, basisCluster, basisPhase) =basisCluster")
     parser.add_option("--basisPhaseThreshold", type="string", dest="basisPhaseThreshold", help="for basisPhase threshold to add new haplotype = 1.0E-10")
     parser.add_option("--basfofn", type="string", dest="basfofn", help="the bas.h5 fofn. HIV.bash5.fofn")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
     parser.add_option("--doOverlap", type="string", dest="doOverlap", help="compute distances only on overlapping interval 1=yes 0=no. 0")
     parser.add_option("--CCS", type="string", dest="CCS", help="Use CCS fasta reads rather than raw from bas.h5. 1=yes 0=no. 0")
+    parser.add_option("--useQuality", type="string", dest="useQuality", help="use Quality in alignment of reads against quiver. 1=yes 0=no. 0")
+    parser.add_option("--surround", type="string", dest="surround", help="use surround'ing bases in minorMsaObs to id variant positions. 'surround'=yes ''=no. ''")
 
     (options, args) = parser.parse_args()
 
@@ -261,5 +263,24 @@ if __name__ == "__main__":
 
     if not options.CCS:
         options.CCS = "0"
+
+    if not options.useQuality:
+        options.useQuality = "0"
+
+    if not options.surround:
+        options.surround=""
+    else:
+        options.surround="surround"
+
+    if not options.chisqThreshold:
+        options.useQuality = "1.0e-100"
+
+    if not options.fisherlThreshold:
+        options.useQuality = "1.0e-100"
+
+    if not options.addHPContext:
+        options.addHPContext=""
+    else:
+        options.addHPContext="addHPContext"
 
     ConsensusClusterSubset(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

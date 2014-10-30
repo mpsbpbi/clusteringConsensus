@@ -63,7 +63,6 @@ export PATH=%s
         template= """filter_plsh5.py %s \
 --outputDir=%s \
 --outputFofn=%s \
---outputSummary=filter_plsh5.outputSummary \
 --debug \
 --logFile=filter_plsh5.log \
 --trim=False \

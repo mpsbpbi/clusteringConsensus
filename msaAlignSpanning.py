@@ -64,11 +64,14 @@ export PATH=%s
                         "--minAccuracy 10 \\",
                         "--maxDivergence 90 \\",
                         "--noSplitSubreads \\",
+                        "--algorithmOptions \"-useQuality \" \\",
                         "--maxHits 1",
                         "\n",
                         "errFromCmph5.py %s | sort -n -k 2 > %s.error" % ("alignments.cmp.h5", "alignments.cmp.h5"),
                         "\n"]
         cmd = cmd + "\n".join(templateList)
+        if options["useQuality"]=="0":
+            cmd = cmd.replace("--algorithmOptions \"-useQuality \" \\\n","")
 
         # if CCS then run only the fasta CCS basecalls. TODO: this could be the .ccs.h5 to get quality
         if ".fasta" in options["inputseq"]:
@@ -108,6 +111,7 @@ if __name__ == "__main__":
     parser.add_option("--ref", type="string", dest="ref", help="The fasta reference. sabin1")
     parser.add_option("--spanThreshold", type="string", dest="spanThreshold", help="How much of the gnome each read must span to be kept.")
     parser.add_option("--nproc", type="string", dest="nproc", help="the number of processors to use when computing alignments. 1")
+    parser.add_option("--useQuality", type="string", dest="useQuality", help="use Quality in alignment of reads against quiver. 1=yes 0=no. 0")
 
     (options, args) = parser.parse_args()
 
@@ -117,5 +121,8 @@ if __name__ == "__main__":
 
     if not options.nproc:
         options.nproc = "1"
+
+    if not options.useQuality:
+        options.useQuality = "0"
 
     alignAndCluster(**options.__dict__) # object to dict for kwargs, TODO: i guess this is right

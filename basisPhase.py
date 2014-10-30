@@ -62,7 +62,8 @@ def multipleScore( indatfile, threshold ):
     for (key,vv) in [x.split(": ") for x in obs[2:-3].split(",")]: # obs discard "{ "..." };"
 
         if int(vv)<5: continue # threshold all counts less than 5
-        
+        if " " in key: continue # " " is missing from ends so discard
+
         numobs+=1
         observed.append( int(vv) )
         haplotypes.append(key)

@@ -82,6 +82,8 @@ class probderive:
             model = HP[0]
             (mon,moff) = monmoff( model[0], obs)
             if model in self.models:
+                if mon>self.maxrows: mon=self.maxrows
+                if moff>self.maxcols: moff=self.maxcols
                 result=self.models[model][mon][moff]
                 result = result + (-math.log(pow(3.0,-moff))/math.log(2.0))
                 result = result + (-math.log(pow(choose(mon+moff,moff),-1))/math.log(2.0)) # prob, 3^moff off string, 1/choose to place moffs, TODOaccounts for duplicates GG????
