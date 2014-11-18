@@ -11,6 +11,8 @@ import numpy as np
 import scipy
 import scipy.stats
 
+debug = False
+
 ################################
 def monmoff( truth, ss ):
   ss=ss.upper()
@@ -68,7 +70,7 @@ def multipleScore( indatfile, threshold ):
         observed.append( int(vv) )
         haplotypes.append(key)
 
-        print "keyxxx", key
+        if debug: print "keyxxx", key
         key = key[1:-1] # discard single quotes
         keyhp = key.split("+")
         for ii in range(refhpnum):
@@ -99,24 +101,28 @@ def multipleScore( indatfile, threshold ):
                 prodnlp *= nlp # TODO: work in logs
 
                 if (ii<4) and (jj<4):
-                    print "for", ii, jj, hp, allobs[hp][ii], allobs[hp][jj], nlp
+                    if debug: print "for", ii, jj, hp, allobs[hp][ii], allobs[hp][jj], nlp
 
             system[jj,ii] = prodnlp
             if (ii<4) and (jj<4):
-                print "system for", ii, jj, haplotypes[ii],haplotypes[jj], prodnlp
+                if debug: print "system for", ii, jj, haplotypes[ii],haplotypes[jj], prodnlp
 
-    print "refhpnum", refhpnum, "numobs", numobs, "allobs", allobs, "observed", observed
+    if debug: print "refhpnum", refhpnum, "numobs", numobs, "allobs", allobs, "observed", observed
 
-    print "system= cbind( "
-    for ii in range(numobs):
-            print "c(", ",".join([ str(x) for x in system[ii,] ]), "),"
-    print ")"
+    if debug:
+      print "system= cbind( "
+      for ii in range(numobs):
+              print "c(", ",".join([ str(x) for x in system[ii,] ]), "),"
+      print ")"
 
     ################################
-    # cycle through the top 10 starting from 1 until nothing is added
+    # cycle through the top starting from 1 until nothing is added
 
     converged = False
     toadd = [0]
+
+    print "================================ top 0"
+    print haplotypes[0], [observed[0], sum(observed)]
 
     maxiter = min(30,numobs)
 
@@ -148,10 +154,12 @@ def multipleScore( indatfile, threshold ):
         else:
             # didn't break so didn't add anything in this topnum iteration
             # toadd explains all the data
+            print "================================"
             print "*** converged! the following haplotypes and fractions explain all the data"
+            print "*** referencePositions: %s" % refhpdat
             converged = True
             for ii in toadd:
-                print ii, haplotypes[ii], hyp[ii]
+                print "***", ii, haplotypes[ii], hyp[ii]
             break
 
     if not converged:

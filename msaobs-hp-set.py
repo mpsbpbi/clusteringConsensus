@@ -9,7 +9,10 @@ docollapse=False
 dosanitize=False
 dosurround=False
 doaddHPContext=False
-for ii in range(3,len(sys.argv)):
+dofwrc = False # separate fw and rc reads
+
+ii=3
+while ii<len(sys.argv):
     if sys.argv[ii]=="collapse":
         docollapse = True
     if sys.argv[ii]=="sanitize":
@@ -18,6 +21,22 @@ for ii in range(3,len(sys.argv)):
         dosurround = True
     if sys.argv[ii]=="addHPContext":
         doaddHPContext = True
+    if sys.argv[ii]=="fwrc":
+        dofwrc=True
+        isRC = dict()
+        dofwrcFile = sys.argv[1].replace("aac.msa", "alignments.filterFull")
+        for ll in open(dofwrcFile).read().splitlines():
+            ff = ll.split("\t")
+            if ff[4][-2:]=="rc":
+                isRC[ff[0]]=1
+
+        msaids = []
+        dofwrcFile = sys.argv[1].replace("aac.msa", "aac.id")
+        for ll in open(dofwrcFile).read().splitlines():
+            ff = ll.split("\t")
+            msaids.append(ff[0])
+
+    ii+=1
 
 # the input MSA
 dat = open(sys.argv[1]).read().splitlines()
@@ -121,17 +140,33 @@ if sys.argv[2]=="all":
 
         for ii in range(1,len(dat)):
             ll = dat[ii] 
-            region = ll[rr[0]:(rr[1]+1)]+"+"
-            store[region] = store.get(region,0)+1
+
+            sense="+"
+            if dofwrc:
+                if msaids[ii] in isRC:
+                    sense="<"
+                else:
+                    sense=">"
+
+            if dosurround:
+                key = "%s%s" % (ll[ (rr[0]) : (rr[1]+1) ],sense)
+            else:
+                key = "%s%s" % (ll[ (rr[0]+1) : (rr[1]+1-1) ], sense)
+
+            if " " in key:  continue # kill any incomplete ends
+
+            if dosanitize:
+                key=key.upper()
+                key=key.replace("-","")
+                key=key.replace(".","")
+
+            store[key] = store.get(key,0)+1
 
         ss = sorted(store.items(), key=lambda x: x[1], reverse=True)
-
         out = []
         for sss in ss:
             out.append("'%s': %d" % (sss))
-
-        res = res+"{ %s };" % ",".join(out)
-        hpdat.append(res)
+        hpdat.append( "%s{ %s };" % (res, ",".join(out) ))
 
 else:
     # look only at the positions that are specified

@@ -142,14 +142,19 @@ def ConsensusClusterSubset(*argv, **options):
         if options["chisqThreshold"] != None:
             # compute using chisq
             
-            cmd = "echo basisVar\n"
+            cmd= """#!/bin/bash
+cd %s
+source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate
+export SEYMOUR_HOME=%s; source $SEYMOUR_HOME/etc/setup.sh; export PATH=%s
+""" % (options["runDir"],os.environ['SEYMOUR_HOME'],os.environ['PATH'])
+
             ## get the data into HP-region count form
             if not os.path.exists("%s/msaobs-hp-set.counts" % options["runDir"]):
-                cmd = cmd + "cd %s; msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts\n" % (options["runDir"])
+                cmd = cmd + "msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts\n"
 
             # use basis to find minor variants across all
             if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
-                cmd = cmd + "cd %s; source /home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/virtscipy/bin/activate; cat msaobs-hp-set.counts | minorMsaObs.py %s %s %s\n" % (options["runDir"], options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
+                cmd = cmd + "cat msaobs-hp-set.counts | minorMsaObs.py %s %s %s\n" % (options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
 
             fp = open("%s/basisVar.cmd" % options["runDir"],"w")
             fp.write("%s\n" % cmd)

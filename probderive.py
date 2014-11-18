@@ -57,8 +57,11 @@ def HPify( ss ):
 
 ################################
 class probderive:
-    maxrows=14
-    maxcols=18
+#    maxrows=14
+#    maxcols=18
+
+    maxrows=26
+    maxcols=27
 
     ################################
     def __init__(self):
@@ -131,9 +134,9 @@ class probderive:
         return((ff[1],ff[2],np.array(mat))) # A,1,mat
 
     def readallmodels(self):
-        for hp in range(1,8):
-            dat = open("/home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/D100.msaobs-hp.decomp.halforder.%d.txt" % hp).read().splitlines()
-            for ll in dat:
+        #for hp in range(1,8):
+        #    dat = open("/home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/D100.msaobs-hp.decomp.halforder.%d.txt" % hp).read().splitlines()
+            for ll in open("/home/UNIXHOME/mbrown/mbrown/workspace2014Q4/clucon-better-model/basis-full-DNA.mmmatrix").read().splitlines():
                 model = self.constructLogP(ll)
                 self.models["%s%s" % (model[0],model[1])] = model[2]
 
