@@ -150,11 +150,13 @@ export SEYMOUR_HOME=%s; source $SEYMOUR_HOME/etc/setup.sh; export PATH=%s
 
             ## get the data into HP-region count form
             if not os.path.exists("%s/msaobs-hp-set.counts" % options["runDir"]):
-                cmd = cmd + "msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts\n"
+                #cmd = cmd + "msaobs-hp-set.py aac.msa all > msaobs-hp-set.counts\n"
+                cmd = cmd + "msaobs-hp-set.py aac.msa all sanitize fwrc > msaobs-hp-set.counts\n"
 
             # use basis to find minor variants across all
             if not os.path.exists("%s/distjob.usecols" % options["runDir"]):
-                cmd = cmd + "cat msaobs-hp-set.counts | minorMsaObs.py %s %s %s\n" % (options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
+                #cmd = cmd + "cat msaobs-hp-set.counts | minorMsaObs.py %s %s %s\n" % (options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
+                cmd = cmd + "cat msaobs-hp-set.counts | minorMsaObs-fwrc.py %s %s %s\n" % (options["chisqThreshold"], options["fisherlThreshold"], options["surround"])
 
             fp = open("%s/basisVar.cmd" % options["runDir"],"w")
             fp.write("%s\n" % cmd)
@@ -278,10 +280,10 @@ if __name__ == "__main__":
         options.surround="surround"
 
     if not options.chisqThreshold:
-        options.useQuality = "1.0e-100"
+        options.chisqThreshold = "1.0e-100"
 
     if not options.fisherlThreshold:
-        options.useQuality = "1.0e-100"
+        options.fisherlThreshold = "1.0e-100"
 
     if not options.addHPContext:
         options.addHPContext=""

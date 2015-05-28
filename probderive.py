@@ -60,13 +60,17 @@ class probderive:
 #    maxrows=14
 #    maxcols=18
 
-    maxrows=26
-    maxcols=27
+#    maxrows=26
+#    maxcols=27
+
+    maxrows=14
+    maxcols=17
 
     ################################
-    def __init__(self):
+    def __init__(self, basisfile = "/home/UNIXHOME/mbrown/mbrown/workspace2014Q4/clucon-better-model/basis-full-DNA.mmmatrix"):
         self.models = dict()
         self.memo=dict()
+        self.basisfile = basisfile
 
     ################################
     # @memoize
@@ -136,7 +140,7 @@ class probderive:
     def readallmodels(self):
         #for hp in range(1,8):
         #    dat = open("/home/UNIXHOME/mbrown/mbrown/workspace2014Q3/basis-variantid/D100.msaobs-hp.decomp.halforder.%d.txt" % hp).read().splitlines()
-            for ll in open("/home/UNIXHOME/mbrown/mbrown/workspace2014Q4/clucon-better-model/basis-full-DNA.mmmatrix").read().splitlines():
+            for ll in open(self.basisfile).read().splitlines():
                 model = self.constructLogP(ll)
                 self.models["%s%s" % (model[0],model[1])] = model[2]
 
