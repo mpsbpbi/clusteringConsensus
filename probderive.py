@@ -63,8 +63,8 @@ class probderive:
 #    maxrows=26
 #    maxcols=27
 
-    maxrows=14
-    maxcols=17
+    maxrows=20
+    maxcols=20
 
     ################################
     def __init__(self, basisfile = "/home/UNIXHOME/mbrown/mbrown/workspace2014Q4/clucon-better-model/basis-full-DNA.mmmatrix"):
@@ -156,7 +156,7 @@ class probderive:
 
 
     ################################
-    def test1():
+    def test1(self):
         probX= self.pderive( "A4", "AAGAA" )
         probY= self.pderive( "A2+G1+A2", "AAGAA" )
         print "probX, probY", probX, probY
@@ -165,6 +165,77 @@ class probderive:
 
         print HPify("AAGAA")
         print "A2+G1+A2"
+
+    ################################
+    def klsummary(self):
+        "Summary of KLs between all models. assumes readallmodels() has been called"
+
+        result = {}
+
+        ################################
+        #### compute KL for all pairs
+        allmodels = self.models.keys()
+        allkl = {}
+
+        for xx in allmodels:
+            for yy in allmodels:
+                if xx==yy: continue
+
+                key = "%s,%s" % (xx,yy)
+                # models are -log2( regularized prob )
+                xml = self.models[xx]
+                yml = self.models[yy]
+
+                bits = -(xml - yml) # log(p)-log(q)
+                kl = np.power(2.0,-xml)*bits # p*(log(p)-log(q))
+
+                value = sum(sum(kl)) # in bits
+                #value = sum(sum(kl))*np.log(2.0) # in nats as done with R
+                allkl[key] = value
+
+        ################################
+        #### output kl matrix
+        result["klheader"] = sorted(allmodels)
+
+        klm = [[]]*len(allmodels)
+        for rri in range(len(sorted(allmodels))):
+            rr = sorted(allmodels)[rri]
+            myrow=[]
+            for cc in sorted(allmodels):
+                key = "%s,%s" % (rr,cc)
+                if rr == cc:
+                    myrow.append(0.0)
+                else:
+                    myrow.append(allkl[key])
+            klm[rri] = myrow
+
+        result["kl"] = klm
+
+        ################################
+        ### find closest KL within base
+        tmp = []
+        allmeans=[]
+        for base in ["A","C","G","T"]:
+            totest = [ mm for mm in allmodels if base in mm ]
+            totestkl = []
+            mymin = 99E99
+            myminkey = "null"
+            for xx in totest:
+                for yy in totest:
+                    if xx==yy: continue
+                    key = "%s,%s" % (xx,yy)
+                    value = allkl[key]
+                    totestkl.append(value)
+                    if value<mymin:
+                        mymin=value
+                        myminkey = key
+            tmp.append("minkl\t%s\t%s\t%f" % (base, myminkey, mymin))
+            mymean = sum(totestkl)/len(totestkl)
+            allmeans.append(mymean)
+            tmp.append("meankl\t%s\t%s\t%f" % (base, base, mymean))
+        tmp.append("allmeankl\tN\tN\t%f" % (sum(allmeans)/len(allmeans)))
+        result["klclose"] = "\n".join(tmp)
+        return(result)
 
 ################################
 def singleScore():
