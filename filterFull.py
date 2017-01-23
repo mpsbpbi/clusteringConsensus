@@ -25,11 +25,9 @@ import sys
 
 infile = sys.argv[1]
 spanT = int(sys.argv[2])
-
-slop = 100
-
-mybegin = 209
-myend=8788
+errT=0.0
+if len(sys.argv)>3:
+    errT = float(sys.argv[3])
 
 dat = open(infile).read().splitlines()
 
@@ -44,9 +42,8 @@ while ll<len(dat):
     te = int(ff[6])
     rlen = int(ff[3])
 
-    #if ts<(mybegin+slop) and te>(myend-slop):
     span = te-ts
-    if span>spanT:
+    if span>spanT and err<errT:
         print dat[ll]
         numGood += 1
 

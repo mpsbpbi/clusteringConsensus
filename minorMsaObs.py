@@ -95,7 +95,8 @@ def scoreIt(dat):
         if observed[ii]>expected[ii]:
             if pval<bestfisher: bestfisher=pval
 
-    result = scipy.stats.chi2_contingency( np.vstack( (observed, expected) ) )
+    #result = scipy.stats.chi2_contingency( np.vstack( (observed, expected) ) )
+    result = scipy.stats.chisquare( observed, expected)
     tmp = ff[0].split("-")
     tmp.append(result[1])
     tmp.append(bestfisher)

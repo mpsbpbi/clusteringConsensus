@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-from pbpy.io.cmph5 import  CmpH5AlnHit
-from pbpy.io import cmph5
-from pbpy.io.cmph5 import CmpH5
-from pbpy.io.cmph5.CmpH5 import SFCmpH5
+# from pbpy.io.cmph5 import  CmpH5AlnHit
+# from pbpy.io import cmph5
+# from pbpy.io.cmph5 import CmpH5
+# from pbpy.io.cmph5.CmpH5 import SFCmpH5
+
+import pbcore.io
 
 import numpy as np
 import sys
@@ -21,11 +23,15 @@ alphabet = "ACGTacgt-."
 def cmph5ToMSA(*argv, **options):
 
     # read in reference template
+    first=True
     f = open(options["reffile"])
     refSeq = ""
     for l in f:
         l = l.strip()
-        if l[0] == ">": 
+        if (l[0] == ">") and not first: 
+            break
+        if (l[0] == ">") and first: 
+            first=False
             continue
         else:
             refSeq += l
@@ -33,13 +39,15 @@ def cmph5ToMSA(*argv, **options):
 
     # read in the query_ids to keep
     queryidsToKeep = {}
-    f = open(options["filter"])
-    dat = f.read().splitlines()
-    f.close()
-    for ll in range(1,len(dat)):
-        ff = dat[ll].split("\t")
-        queryidsToKeep[ff[0]] = 1
-    sys.stderr.write("len(queryidsToKeep) %d\n" % len(queryidsToKeep))
+    if options["filter"] is not None:
+        f = open(options["filter"])
+        dat = f.read().splitlines()
+        f.close()
+        for ll in range(1,len(dat)):
+            ff = dat[ll].split("\t")
+            print "tokeep", ff[0]
+            queryidsToKeep[ff[0]] = 1
+        sys.stderr.write("len(queryidsToKeep) %d\n" % len(queryidsToKeep))
 
     # what part of the template do we want the alignment for [low_0,high) ?
     rangeLow = int(options["rangeLow"])
@@ -60,7 +68,9 @@ def cmph5ToMSA(*argv, **options):
 
     # get alignment data
     #cmph5f = cmph5.factory.create(options["cmph5"], 'r') # key error
-    cmph5f = SFCmpH5(os.path.abspath( options["cmph5"] ), mode='r', readType='standard')
+    # SFCmpH5(os.path.abspath( options["cmph5"] ), mode='r', readType='standard')
+    cmph5f = pbcore.io.openIndexedAlignmentFile( options["cmph5"], referenceFastaFname=options["reffile"] )
+    print cmph5f
 
     # put in reference
     currentHit = 0
@@ -73,9 +83,29 @@ def cmph5ToMSA(*argv, **options):
         alignment[tIdx][query_id] = UC[qb]
 
     # step through alignments correctly handling fwd/rc sense
-    for h in cmph5f.alnHitIterator():
+    for hi in range(len(cmph5f)):
+        print "hi", hi
+
+        h = cmph5f[hi]
+
         # continue if not in queryidsToKeep from filtering
-        if not(h.query_id in queryidsToKeep): continue
+        myreadName = h.readName
+        if "ccs" in myreadName:
+            myreadName = myreadName[:-4]
+
+        # enforce subreads?
+        # ff = myreadName.split("/")
+        # if len(ff)>2:
+        #     myreadName = "/".join([ff[0],ff[1]])
+
+        print "look", myreadName
+        
+        if options["filter"] is None:
+            queryidsToKeep[myreadName] = 1
+
+        if not(myreadName in queryidsToKeep):
+            print "skipping"
+            continue
 
         currentHit += 1
         # print "working on currentHit %d" % currentHit
@@ -86,42 +116,44 @@ def cmph5ToMSA(*argv, **options):
         # shortcut on sequence if spacing between blocks not required to be consistent
         # if currentHit>(seqHigh-1) or currentHit<seqLow: continue
 
-        allqueryids.append(h.query_id)
+        allqueryids.append(myreadName)
 
-        ts = h.target_start
-        te = h.target_end
-        qs = h.query_start
-        qe = h.query_end
-        strand = h.target_strand
+        ts = h.tStart
+        te = h.tEnd
+#        qs = h.rStart
+#        qe = h.rEnd
+        qs = h.aStart
+        qe = h.aEnd
+        strand = "+" if h.isForwardStrand else "-"
 
         # is the hit overlapping our range? b2<e1 and b1<e2
         if not (ts<rangeHigh and te>rangeLow): continue
 
         if strand == "+":
-            tM =  [ 1 if x != '-' else 0 for x in h.alignedTarget] 
-            qM =  [ 1 if x != '-' else 0 for x in h.alignedQuery] 
-            qSeq = h.alignedQuery
-            tSeq = h.alignedTarget
+            tM =  [ 1 if x != '-' else 0 for x in h.reference()] 
+            qM =  [ 1 if x != '-' else 0 for x in h.read()] 
+            qSeq = h.read()
+            tSeq = h.reference()
             tOffset = ts + np.cumsum(tM)
             qOffset = qs + np.cumsum(qM)
         else:
-            tM =  [ 1 if x != '-' else 0 for x in h.alignedTarget[::-1]] 
-            qM =  [ 1 if x != '-' else 0 for x in h.alignedQuery[::-1]] 
-            qSeq = [rMap[c] for c in h.alignedQuery[::-1]]
-            tSeq = [rMap[c] for c in h.alignedTarget[::-1]]
+            tM =  [ 1 if x != '-' else 0 for x in h.reference()[::-1]] 
+            qM =  [ 1 if x != '-' else 0 for x in h.read()[::-1]] 
+            qSeq = [rMap[c] for c in h.read()[::-1]]
+            tSeq = [rMap[c] for c in h.reference()[::-1]]
             tOffset = ts + np.cumsum(tM)
             qOffset = qs + np.cumsum(qM)
 
         for qp, tp, qb, tb  in zip(qOffset, tOffset, qSeq, tSeq):
             if tp<rangeLow or tp>(rangeHigh-1): continue
             tIdx = tp-rangeLow
-            tmp = alignment[tIdx].get(h.query_id, "")
+            tmp = alignment[tIdx].get(myreadName, "")
             # print tp, tIdx, tmp, qb, "%s%s" % (tmp,qb)
             if tmp=="":
                 out = UC[qb]
             else:
                 out = "%s%s" % (tmp,qb)
-            alignment[tIdx][h.query_id] = out
+            alignment[tIdx][myreadName] = out
 
     print "cmp.h5 has %d reads. genome has %d bases." % ( currentHit, len(refSeq))
 

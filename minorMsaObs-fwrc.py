@@ -67,7 +67,8 @@ def scoreCounts( modelname, allobs, sumcounts):
             if pval<bestfisher: bestfisher=pval
 
     if sum(observed)>1:
-      result = scipy.stats.chi2_contingency( np.vstack( (observed, expected) ) )
+      #result = scipy.stats.chi2_contingency( np.vstack( (observed, expected) ) )
+      result = scipy.stats.chisquare( observed, expected)
       return( [result[1], bestfisher] )
     else:
       return([1.0,1.0])
@@ -126,6 +127,8 @@ if __name__ == "__main__":
 
     input= sys.stdin.read().splitlines()
 
+    print "len(input)", len(input)
+    
     # compute and write results
 
     ################################

@@ -146,7 +146,14 @@ def multipleScore( indatfile, threshold ):
             print haplotypes[ii], table, 
             (ftodds, pval) = scipy.stats.fisher_exact(table)
             print pval
-            if pval<threshold and observed[ii]>hypObs[ii]:
+            justadd=False
+            if pval<0:
+              # TODO: hack to get around numeric crap library!
+              print >>sys.stderr, "horrible negative pval! taking abs", pval
+              pval = abs(pval)
+              if table[0][0]<100 and table[1][0]>100: justadd=True
+
+            if justadd or (pval<threshold and observed[ii]>hypObs[ii]):
                 print "should add!", ii, haplotypes[ii]
                 toadd.append(ii)
                 added=True

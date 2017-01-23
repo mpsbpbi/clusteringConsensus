@@ -63,11 +63,15 @@ class probderive:
 #    maxrows=26
 #    maxcols=27
 
-    maxrows=20
-    maxcols=20
+    maxrows=50
+    maxcols=50
+
+    maxrows=16
+    maxcols=16
 
     ################################
     def __init__(self, basisfile = "/home/UNIXHOME/mbrown/mbrown/workspace2014Q4/clucon-better-model/basis-full-DNA.mmmatrix"):
+        basisfile="/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/roche-viral-ccsAccuracy/sequel.16.mmmatrix"
         self.models = dict()
         self.memo=dict()
         self.basisfile = basisfile
@@ -172,6 +176,12 @@ class probderive:
 
         result = {}
 
+        def qvErrFromNKL(N,KL):
+            """log(P(err)) given KL and N from README_KLAcc. Tighter than Hoeffding"""
+            KL = KL*math.log(2.0) # here kl is base 2 and need base e for this approximation
+            logperr = -0.82485 -0.45605*KL -0.02478*N -0.28249*KL*N
+            return(-10*logperr/math.log(10.0))
+
         ################################
         #### compute KL for all pairs
         allmodels = self.models.keys()
@@ -214,6 +224,7 @@ class probderive:
         ################################
         ### find closest KL within base
         tmp = []
+        tmp.append("type\tbase\tpair\tkl\tqv10x\tqv20x")
         allmeans=[]
         for base in ["A","C","G","T"]:
             totest = [ mm for mm in allmodels if base in mm ]
@@ -229,7 +240,7 @@ class probderive:
                     if value<mymin:
                         mymin=value
                         myminkey = key
-            tmp.append("minkl\t%s\t%s\t%f" % (base, myminkey, mymin))
+            tmp.append("minkl\t%s\t%s\t%f\t%f\t%f" % (base, myminkey, mymin, qvErrFromNKL(10,mymin), qvErrFromNKL(20,mymin)))
             mymean = sum(totestkl)/len(totestkl)
             allmeans.append(mymean)
             tmp.append("meankl\t%s\t%s\t%f" % (base, base, mymean))
